@@ -1,0 +1,5 @@
+#!/bin/bash
+
+service gpio-mqtt stop
+
+rm -fr /var/log/gpio-mqtt

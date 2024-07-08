@@ -1,0 +1,7 @@
+#!/bin/bash
+
+chmod +x /etc/init.d/gpio-mqtt
+
+update-rc.d gpio-mqtt defaults
+
+#service gpio-mqtt start

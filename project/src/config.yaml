@@ -1,0 +1,21 @@
+broker:
+    host: "localhost"
+    port: 1883
+    user: ""
+    password: ""
+
+cfg:
+  pool_period_ms: 1000
+  changes_only: False
+
+sfs_pins:
+  -name: TestPin
+  pool_period_ms: 100
+  changes_only: False
+  file_value: "/sys/devices/platform/soc/1c20800.pinctrl/gpiochip0/gpio/gpio132/value"
+  type: out
+  file_dir: "/sys/devices/platform/soc/1c20800.pinctrl/gpiochip0/gpio/gpio132/direction"
+  
+
+  # the following data could be used for test purposes
+

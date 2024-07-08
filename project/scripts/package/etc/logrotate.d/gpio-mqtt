@@ -1,0 +1,9 @@
+/var/log/topicator/gpio-mqtt.log {
+    rotate 4
+    missingok
+    notifempty
+    size=5k 
+    olddir /var/log/gpio-mqtt/oldlogs
+    copytruncate
+    nocompress
+}

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+update-rc.d gpio-mqtt remove
+
+#rm -fr /etc/gpio-mqtt
+rm -fr /opt/gpio-mqtt
+#rm -fr ~/gpio-mqtt
+
