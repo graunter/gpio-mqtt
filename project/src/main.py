@@ -42,6 +42,10 @@ if __name__ == "__main__":
                     help='Specify the MQTT host to connect to.')
     parser.add_argument('-p', '--port-broker', dest='port', action="store",
                     help='Specify the MQTT host to connect to.')    
+    parser.add_argument('-u', '--user-broker', dest='user', action="store",
+                    help='User name for Broker connection')  
+    parser.add_argument('-w', '--pass-broker', dest='pasw', action="store",
+                    help='Password for Broker connection.')  
     parser.add_argument('-v', '--verbose', dest='verbose', action="store_true", default=False,
                     help='Enable debug messages.')
 
@@ -70,9 +74,13 @@ if __name__ == "__main__":
     client.on_message = topinator.on_message
     
     Host = args.host if args.host is not None else Cfg.host
-    Port = args.port if args.host is not None else Cfg.port
+    Port = args.port if args.port is not None else Cfg.port
+    User = args.user if args.user is not None else Cfg.user
+    Pasw = args.pasw if args.pasw is not None else Cfg.pasw
 
     logging.debug("Try connection to " + str(Host) + " with port " + str(Port) )
+    client.username = User
+    client.password = Pasw
     client.connect(Host, Port)
         
     client.loop_forever()

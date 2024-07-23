@@ -39,6 +39,8 @@ class MyConfig(metaclass=MySingletone):
 
         self.host = "localhost"
         self.port = 1883
+        self.pasw = ""
+        self.user = ""
 
         cfg_files_p = []
         try:
@@ -77,13 +79,15 @@ class MyConfig(metaclass=MySingletone):
 
         if Broker is not None:
             self.host = Broker.get("host", self.host)
-            self.port = Broker.get("port", self.port)      
+            self.port = Broker.get("port", self.port)   
+            self.user = Broker.get("user", self.user)
+            self.pasw = Broker.get("password", self.pasw)
         
 
     def extract_components(self, CfgData: list):
 
-        if CfgData and CfgData["pins"] is not None:
-            for item in CfgData.get("pins", []):
+        if CfgData and CfgData["sysfs_pins"] is not None:
+            for item in CfgData.get("sysfs_pins", []):
                 pass
 
 
