@@ -3,6 +3,7 @@ import re
 import yaml #pip install pyyaml
 from pathlib import Path
 from constants import *
+from pin import CPin
 
 from threading import Lock, Thread
 import logging
@@ -37,6 +38,8 @@ class MyConfig(metaclass=MySingletone):
         logging.debug('system file: ' + str(system_p))
         logging.debug('user file: ' + str(user_p))
 
+        self.pins = defaultdict(list[CPin])
+
         self.host = "localhost"
         self.port = 1883
         self.pasw = ""
@@ -63,7 +66,7 @@ class MyConfig(metaclass=MySingletone):
                         logging.error("YAML file " + user_f.name + " is incorrect and will be skipped: " + ': Message: ' + format(e) )
                         pass     
             except Exception as e:
-                logging.error("Can't open file" + user_f.name + " - it will be skipped: " + ': Message: ' + format(e) )
+                logging.error("Can't open file" + str(u_file) + " - it will be skipped: " + ': Message: ' + format(e) )
                 pass     
 
 
@@ -85,10 +88,49 @@ class MyConfig(metaclass=MySingletone):
         
 
     def extract_components(self, CfgData: list):
-
+        
+        NoNameCnt=0
         if CfgData and CfgData["sysfs_pins"] is not None:
             for item in CfgData.get("sysfs_pins", []):
-                pass
+                pin = CPin()
+                pin.name = item.get("name", "")
+                if not pin.name:
+                    pin.name = "NoName" + NoNameCnt
+                    NoNameCnt += 1
+                    
+                pin.changes_only = item.get("changes_only", False)
+
+                pin.topic = item.get("topic")
+                if not pin.topic:
+                    continue
+
+                pin.pool_period_ms = item.get("pool_period_ms", 100)    #TODO
+                pin.file_value = item.get("file_value")
+                # TODO: Check file not empty and exist after init
+                pin.type = item.get("type")
+                # TODO: Check ftype is correct
+                pin.create_empty_topic = item.get("create_empty_topic", False)
+
+                for InitStep in item.get("init", []):
+                    OutFile = InitStep.get("file")
+                    if OutFile is None:
+                        continue                    # TODO: Err msg
+                    OutText = InitStep.get("text")
+                    if OutText is None:
+                        continue
+
+                    pin.init.append( (OutFile, OutText) )
+
+                self.pins.setdefault( pin.topic, [] )   
+                self.pins[pin.topic].append(pin)
+
+
+
+    def get_components(self) -> Dict[str, List[CPin]]:   
+        logging.debug('Total ' + str(len(self.pins)) + ' was passed')
+        return self.pins
+
+
 
 
 if __name__ == "__main__":

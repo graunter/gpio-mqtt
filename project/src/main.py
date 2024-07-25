@@ -16,6 +16,8 @@ def debug(msg):
 class CTopinator:
     def __init__(self, Cfg: MyConfig):
         self.cfg = Cfg
+        self.pins = Cfg.get_components()
+        logging.debug('Total ' + str(len(self.pins)) + ' was tacken')
 
     def signal_handler(self, signal, frame):
         print('You pressed Ctrl+C!')
@@ -27,9 +29,16 @@ class CTopinator:
         # Подписка при подключении означает, что если было потеряно соединение
         # и произошло переподключение - то подписка будет обновлена
 
+        for i, (key, CompLst) in enumerate(self.pins.items()):
+            for OneComp in CompLst:
+                OneComp.on_connect( client )
+
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
-        pass
+        logging.debug("In msg " + str(msg) + " in topic " + str(msg.topic))
+
+        for item in self.pins[msg.topic]:
+            item.on_message( client, userdata, msg )
 
 
 if __name__ == "__main__":

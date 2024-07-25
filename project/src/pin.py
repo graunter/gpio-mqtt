@@ -2,19 +2,19 @@ import paho.mqtt.client as mqtt
 import logging
 
 
-class CComponent:
-    def __init__(self, InTopicName: str, OutTopicName: str, Operation: str=""):
-        self.name = "Mod1_K12"
-        self.topic = "dev/extender/do12"
+class CPin:
+    def __init__(self):
+        self.name = ""
+        self.pool_period_ms = 0
         self.changes_only = False
-        self.file_value = "/sys/class/gpio/gpio563/value"
+        self.topic = ""
+        self.changes_only = False
+        self.file_value = ""
         self.fd = None
-        self.type = "DO"
+        self.type = ""
         self.create_empty_topic = True
-        self.init = [ 
-            ("/sys/class/gpio/export", "563"),
-            ("/sys/class/gpio/gpio563/direction", "out")
-        ]
+        self.init = [ ]
+
 
     def pin_open(self):
         self.fd = open(self.file_value, "r+")
@@ -36,7 +36,7 @@ class CComponent:
                 client.subscribe( self.topic )
 
             case "DI":
-                logging.debug('Create DO topic: ' + self.topic + "for pin " + self.file_value)
+                logging.debug('Create DI topic: ' + self.topic + "for pin " + self.file_value)
                 #TODO
 
             case _:
@@ -46,10 +46,15 @@ class CComponent:
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
         PinVal = msg.payload
         
-        self.check_open()
-        self.fd.seek(0)
-        self.fd.write(PinVal)
-        self.fd.flush()
+        try:
+            self.check_open()
+            self.fd.seek(0)
+            self.fd.write(PinVal)
+            self.fd.flush()
+        except Exception as e:
+            logging.error("Can't write to file " + str(self.file_value) + " - this event will be skipped: " + ': Message: ' + format(e) )
+
+        logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(PinVal) + '"')
 
 
 
