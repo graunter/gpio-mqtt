@@ -5,6 +5,7 @@ import paho.mqtt.client as mqtt # pip install paho-mqtt
 from my_config import MyConfig
 import logging
 import json
+from threading import Thread
 
 
 verbose = False
@@ -33,9 +34,19 @@ class CTopinator:
             for OneComp in CompLst:
                 OneComp.on_connect( client )
 
+        self.pull_thrd = Thread(target=self.on_pool)
+        self.pull_thrd.daemon = True
+        self.pull_thrd.start()
+
+    def on_pool(self):
+        time.sleep(Cfg.pool_period_ms/1000)
+        while True:
+            for i, (key, CompLst) in enumerate(self.pins.items()):
+                for OneComp in CompLst:
+                    OneComp.on_update()
+
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
-        logging.debug("In msg " + str(msg) + " in topic " + str(msg.topic))
 
         for item in self.pins[msg.topic]:
             item.on_message( client, userdata, msg )
@@ -81,6 +92,10 @@ if __name__ == "__main__":
     client = mqtt.Client()
     client.on_connect = topinator.on_connect
     client.on_message = topinator.on_message
+
+    # For test purposes
+    #if args.verbose: 
+        # client.enable_logger()
     
     Host = args.host if args.host is not None else Cfg.host
     Port = args.port if args.port is not None else Cfg.port

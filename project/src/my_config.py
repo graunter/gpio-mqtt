@@ -45,6 +45,9 @@ class MyConfig(metaclass=MySingletone):
         self.pasw = ""
         self.user = ""
 
+        self.pool_period_ms = 1000
+        self.changes_only = False
+
         cfg_files_p = []
         try:
             cfg_files_p = [f for f in (Path.home()/COMMON_PATH).iterdir() if f.match("*config.yaml")]
@@ -74,7 +77,15 @@ class MyConfig(metaclass=MySingletone):
        
         self.extract_connection(CfgData)
         self.extract_components(CfgData)
+        self.extract_misc_conf(CfgData)
 
+    def extract_misc_conf(self, CfgData: list):
+
+        MiscCfg = CfgData.get("cfg", {})
+
+        if MiscCfg is not None:
+            self.pool_period_ms = MiscCfg.get("pool_period_ms", self.pool_period_ms)
+            self.changes_only = MiscCfg.get("changes_only", self.changes_only) 
 
     def extract_connection(self, CfgData: list):
 
@@ -109,7 +120,7 @@ class MyConfig(metaclass=MySingletone):
                 # TODO: Check file not empty and exist after init
                 pin.type = item.get("type")
                 # TODO: Check ftype is correct
-                pin.create_empty_topic = item.get("create_empty_topic", False)
+                pin.create_start_topic = item.get("create_start_topic", False)
 
                 for InitStep in item.get("init", []):
                     OutFile = InitStep.get("file")

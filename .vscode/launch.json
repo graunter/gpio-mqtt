@@ -11,7 +11,8 @@
             "program": "${file}",
             "console": "integratedTerminal",
             //"args": "${command:pickArgs}"
-            "args": "-v"
+            "args": "-v",
+            "sudo": true
         }
     ]
 }
