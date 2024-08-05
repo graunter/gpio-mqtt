@@ -27,6 +27,22 @@ class CPin:
         if self.fd is None:
             self.pin_open()  
 
+    def on_start(self):
+        #TODO: process initial state
+        
+        match self.type:
+            case "OUT":
+                try:
+                    # self.check_open()
+                    # self.fd.seek(0)
+                    # self.fd.write(self.PinVal)
+                    # self.fd.flush()     
+                    pass     
+
+                except Exception as e:
+                    logging.error("Can't write to file " + str(self.file_value) + " - this init will be skipped: " + ': Message: ' + format(e) )
+                    self.fd.close()
+
 
     def on_connect(self, client: mqtt.Client):
 
@@ -90,31 +106,34 @@ class CPin:
             self.fd.seek(0)
             self.fd.write(self.PinVal)
             self.fd.flush()
+            logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(self.PinVal) + '"')
+
         except Exception as e:
             logging.error("Can't write to file " + str(self.file_value) + " - this event will be skipped: " + ': Message: ' + format(e) )
-
-        logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(self.PinVal) + '"')
 
 
     def on_update( self ):
         match self.type:
-            case "OUT":      
-                try:
-                    self.check_open()
-                    self.fd.seek(0)
+            case "OUT":     
+                # TODO: Should we update output pins periodicaly?
+                # try:
+                #     self.check_open()
+                #     self.fd.seek(0)
 
-                    if not self.changes_only:
-                        self.fd.write(self.PinVal)
-                        self.fd.flush()
-                    else:
-                        PinValNew = self.fd.read()                        
+                #     if not self.changes_only:
+                #         self.fd.write(self.PinVal)
+                #         self.fd.flush()
+                #     else:
+                #         PinValNew = self.fd.read()                        
                         
-                        if (self.PinVal != PinValNew):
-                            self.fd.write(self.PinVal)
-                            self.fd.flush()              
+                #         if (self.PinVal != PinValNew):
+                #             self.fd.write(self.PinVal)
+                #             self.fd.flush()              
 
-                except Exception as e:
-                    logging.error("Can't write to file " + str(self.file_value) + " - this update will be skipped: " + ': Message: ' + format(e) )
+                # except Exception as e:
+                #     logging.error("Can't write to file " + str(self.file_value) + " - this update will be skipped: " + ': Message: ' + format(e) )
+                pass 
+
             case "IN":
                 try:
                     self.check_open()
@@ -131,7 +150,6 @@ class CPin:
                 except Exception as e:
                     logging.error("Can't read file " + str(self.file_value) + " - update of this topic will be skipped: " + ': Message: ' + format(e) )
 
-        
             case _:
                 raise ValueError(f'Unknown pin type: {self.type}')
     

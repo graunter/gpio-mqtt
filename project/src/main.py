@@ -26,6 +26,7 @@ class CTopinator:
 
     # TODO: restore of all pins state from persistent storage
     def on_start(self):
+
         pass
 
     def on_connect(self, client, userdata, flags, rc):
@@ -33,6 +34,8 @@ class CTopinator:
         
         # Подписка при подключении означает, что если было потеряно соединение
         # и произошло переподключение - то подписка будет обновлена
+
+        # TODO: on_start() once
 
         if rc != 0:
             logging.debug(f"Failed to connect: {rc}. loop_forever() will retry connection")
