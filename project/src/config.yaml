@@ -24,16 +24,16 @@ sysfs_pins:
   #     - file: "/sys/class/gpio/gpio563/direction"
   #       text: "out"
 
-  - name: LedGreen
-    type: OUT
-    topic: "test/dev/LedGreen"
-    file_value: "/sys/class/gpio/gpio539/value"
-    create_start_topic: True
+  # - name: LedGreen
+  #   type: OUT
+  #   topic: "test/dev/LedGreen"
+  #   file_value: "/sys/class/gpio/gpio539/value"
+  #   create_start_topic: True
 
   - name: UserBtn
     type: IN
     pool_period_ms: 100
-    changes_only: False
+    changes_only: True
     topic: "test/dev/UserBtn"
     file_value: "/sys/class/gpio/gpio522/value"
     create_start_topic: True

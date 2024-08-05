@@ -1,5 +1,7 @@
 import paho.mqtt.client as mqtt
 import logging
+from threading import Thread
+import time
 
 
 class CPin:
@@ -53,11 +55,14 @@ class CPin:
                     raise ValueError(f'Unknown pin type: {self.type}')
 
  
-
         match self.type:
             case "OUT":
-                self.client.subscribe( self.topic )  
-                logging.debug('Waiting OUT topic: ' + self.topic + "for pin " + self.file_value)
+                [res, mid] = self.client.subscribe( self.topic )  
+                if res == mqtt.MQTT_ERR_SUCCESS:
+                    logging.debug('Waiting OUT topic: ' + self.topic + "for pin " + self.file_value)
+                else:
+                    logging.error('Failed sub OUT topic: ' + self.topic + "for pin " + self.file_value)                    
+
             case "IN":
                 #TODO: subscribe for interrupt
                 pass
@@ -65,7 +70,16 @@ class CPin:
             case _:
                 raise ValueError(f'Unknown pin type: {self.type}')
     
+        # an individual pooling thread for every pin
+        if( self.pool_period_ms >= 0 ):
+            self.pull_thrd = Thread(target=self.self_pool)
+            self.pull_thrd.daemon = True
+            self.pull_thrd.start()
 
+    def self_pool(self):
+        time.sleep(self.pool_period_ms/1000)
+        while True:
+            self.on_update()
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
         # Really thip proc is aplicable for OUT only
@@ -88,8 +102,17 @@ class CPin:
                 try:
                     self.check_open()
                     self.fd.seek(0)
-                    self.fd.write(self.PinVal)
-                    self.fd.flush()
+
+                    if not self.changes_only:
+                        self.fd.write(self.PinVal)
+                        self.fd.flush()
+                    else:
+                        PinValNew = self.fd.read()                        
+                        
+                        if (self.PinVal != PinValNew):
+                            self.fd.write(self.PinVal)
+                            self.fd.flush()              
+
                 except Exception as e:
                     logging.error("Can't write to file " + str(self.file_value) + " - this update will be skipped: " + ': Message: ' + format(e) )
             case "IN":
@@ -99,9 +122,9 @@ class CPin:
                     PinValNew = self.fd.read()
 
                     if not self.changes_only:
-                        self.client.publish( self.topic, self.PinVal)
+                        self.client.publish( self.topic, PinValNew)
                     elif self.PinVal != PinValNew:
-                        self.client.publish( self.topic, self.PinVal)
+                        self.client.publish( self.topic, PinValNew)
 
                     self.PinVal = PinValNew
 

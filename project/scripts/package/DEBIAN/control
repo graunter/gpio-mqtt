@@ -3,7 +3,7 @@ Package: gpio-mqtt
 Version: 0.0.1
 Section: embedded
 Priority: optional
-Depends: python3 (>= 3.5.3), python3-paho-mqtt (>= 1.5)
+Depends: python3 (>= 3.9), python3-paho-mqtt (>= 1.5)
 Maintainer: STDU Zhukov Sergey <graunter@gmail.com>
 Architecture: all
 Installed-Size: 6000

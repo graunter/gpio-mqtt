@@ -24,11 +24,21 @@ class CTopinator:
         print('You pressed Ctrl+C!')
         client.disconnect()
 
+    # TODO: restore of all pins state from persistent storage
+    def on_start(self):
+        pass
+
     def on_connect(self, client, userdata, flags, rc):
         
-        logging.debug("Connected with result code "+str(rc))
+        
         # Подписка при подключении означает, что если было потеряно соединение
         # и произошло переподключение - то подписка будет обновлена
+
+        if rc != 0:
+            logging.debug(f"Failed to connect: {rc}. loop_forever() will retry connection")
+            return
+
+        logging.debug("Connected with result code "+str(rc))
 
         for i, (key, CompLst) in enumerate(self.pins.items()):
             for OneComp in CompLst:
@@ -43,7 +53,8 @@ class CTopinator:
         while True:
             for i, (key, CompLst) in enumerate(self.pins.items()):
                 for OneComp in CompLst:
-                    OneComp.on_update()
+                    # iterate by not initialized elements only
+                    if OneComp.pool_period_ms == 0: OneComp.on_update()
 
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):

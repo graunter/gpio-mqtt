@@ -115,7 +115,8 @@ class MyConfig(metaclass=MySingletone):
                 if not pin.topic:
                     continue
 
-                pin.pool_period_ms = item.get("pool_period_ms", 100)    #TODO
+                pin.pool_period_ms = item.get("pool_period_ms", 0)    #TODO
+
                 pin.file_value = item.get("file_value")
                 # TODO: Check file not empty and exist after init
                 pin.type = item.get("type")
