@@ -2,6 +2,7 @@ import paho.mqtt.client as mqtt
 import logging
 from threading import Thread
 import time
+from StateHolder import StateHolder
 
 
 class CPin:
@@ -28,20 +29,18 @@ class CPin:
             self.pin_open()  
 
     def on_start(self):
-        #TODO: process initial state
-        
+
         match self.type:
             case "OUT":
                 try:
-                    # self.check_open()
-                    # self.fd.seek(0)
-                    # self.fd.write(self.PinVal)
-                    # self.fd.flush()     
-                    pass     
+                    storage = StateHolder()
+                    self.PinVal = storage.load(self.name)
+                    self.check_open()
+                    self.fd.write(self.PinVal)
+                    self.fd.flush()          
 
                 except Exception as e:
-                    logging.error("Can't write to file " + str(self.file_value) + " - this init will be skipped: " + ': Message: ' + format(e) )
-                    self.fd.close()
+                    logging.error("Can't open file: " + str(self.name) + " - state not restored: " + ': Message: ' + format(e) )
 
 
     def on_connect(self, client: mqtt.Client):
@@ -101,11 +100,14 @@ class CPin:
         # Really thip proc is aplicable for OUT only
         self.PinVal = msg.payload.decode("utf-8")
 
+        storage = StateHolder()
+
         try:
             self.check_open()
-            self.fd.seek(0)
+            #self.fd.seek(0)    # not required really
             self.fd.write(self.PinVal)
             self.fd.flush()
+            storage.save(str(self.PinVal), str(self.name))
             logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(self.PinVal) + '"')
 
         except Exception as e:

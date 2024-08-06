@@ -27,7 +27,16 @@ class CTopinator:
     # TODO: restore of all pins state from persistent storage
     def on_start(self):
 
-        pass
+        total_pins = list()
+        for every_pin in self.pins.values():
+            total_pins.extend(every_pin)
+        
+        #TODO: really pins selected by topics - not by files with values
+        unic_pins_set = set(total_pins)
+        unic_pins_lst = list(unic_pins_set)
+
+        [pin.on_start() for pin in unic_pins_lst]
+      
 
     def on_connect(self, client, userdata, flags, rc):
         
@@ -102,6 +111,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, topinator.signal_handler)
 
     debug("topinator started!")
+
+    topinator.on_start()
 
     client = mqtt.Client()
     client.on_connect = topinator.on_connect
