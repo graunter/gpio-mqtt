@@ -6,9 +6,25 @@ broker:
 
 cfg:
   pool_period_ms: 1000
-  changes_only: False
+  changes_only: True
+  status_period_sec: 10000
 
 sysfs_pins:
+
+  # - title: none                           # ! Начало описания элемента
+  #   name: TEXT                            # * Символическое имя, используемое для ссылок
+  #   type: IN | OUT                        # !  
+  #   pool_period_ms: #                     # * Возможность задать независимое время опроса
+  #   changes_only: BOOL                    # * Возможность передавать только изменения параметра
+  #   topic: "full/path/to/topic_name"      # ! топик для управления значением
+  #   file_value: "full/path/to/file_name"  # ! файл для записи значения
+  #   create_start_topic: BOOL              # * Для удобства топик управления создается при старте
+  #   init:                                 # * Инициализирующая последовательность при старте
+  #     - file: "full/path/to/file_name1"   # * файл для записи значения
+  #       text: "#"                         # * текст для записи в файл 
+  #     - file: "full/path/to/file_name2"   # * Записей может быть несколько
+  #       text: "#""
+
   # the following data could be used for test purposes
   # JH D1
   # - name: LedRed
@@ -43,11 +59,13 @@ sysfs_pins:
       - file: "/sys/class/gpio/gpio522/direction"
         text: "in"  
 
+
   - name: DI_1
     type: IN
     topic: "test/dev/DI_1"
     file_value: "/sys/class/gpio/gpio558/value"
     create_start_topic: True
+    changes_only: True
 
   - name: DI_2
     type: IN
@@ -67,11 +85,22 @@ sysfs_pins:
     file_value: "/sys/class/gpio/gpio555/value"
     create_start_topic: True
 
+##############################################################33
+# Section
   - name: DO_1
     type: OUT
-    topic: "test/dev/DO_1"
+    topic_wr: "test/dev/DO_1/on"
+    topic_rd: "test/dev/DO_1"
+    topic_cmd: "test/dev/DO_1/on"
+    topic_state: "test/dev/DO_1"
+
     file_value: "/sys/class/gpio/gpio542/value"
     create_start_topic: True
+    changes_only: True
+    pool_period_ms: 1000
+    status_period_sec: 600
+
+######################################################################
 
   - name: DO_2
     type: OUT
@@ -110,6 +139,4 @@ sysfs_pins:
   #       text: "563"
   #     - file: "/sys/class/gpio/gpio563/direction"
   #       text: "in"  
-
-
 
