@@ -3,7 +3,10 @@ import logging
 from threading import Thread
 import time
 from StateHolder import StateHolder
+from typing import List
+from collections import namedtuple
 
+InitStep_t = namedtuple("InitStep_t", "OutFile Text")
 
 class CPin:
     def __init__(self):
@@ -16,7 +19,8 @@ class CPin:
         self.fd = None
         self.type = ""
         self.create_start_topic = True
-        self.init = [ ]
+
+        self.init: List[ InitStep_t ] = []
 
         self.PinVal = ""
 
@@ -29,6 +33,16 @@ class CPin:
             self.pin_open()  
 
     def on_start(self):
+
+        for one_step in self.init:
+            out_file = one_step.OutFile
+            text = one_step.Text
+            try:
+                with open(out_file, "w") as this_file:
+                    this_file.write(text)
+            except Exception as e:
+                logging.error("Some problem with file: " + str(self.name) + " - this init step skipped: " + ': Message: ' + format(e) )                
+
 
         match self.type:
             case "OUT":

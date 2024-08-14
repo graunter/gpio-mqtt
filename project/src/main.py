@@ -31,7 +31,7 @@ class CTopinator:
         for every_pin in self.pins.values():
             total_pins.extend(every_pin)
         
-        #TODO: really pins selected by topics - not by files with values
+        #TODO: really pins selected by objects - not by files with values
         unic_pins_set = set(total_pins)
         unic_pins_lst = list(unic_pins_set)
 
@@ -128,8 +128,8 @@ if __name__ == "__main__":
     Pasw = args.pasw if args.pasw is not None else Cfg.pasw
 
     logging.debug("Try connection to " + str(Host) + " with port " + str(Port) )
-    client.username = User
-    client.password = Pasw
+
+    client.username_pw_set(User, Pasw)
     client.connect(Host, Port)
         
     client.loop_forever()

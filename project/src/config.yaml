@@ -38,8 +38,8 @@ sysfs_pins:
     file_value: "/sys/class/gpio/gpio522/value"
     create_start_topic: True
     init:
-      - file: "/sys/class/gpio/export"
-        text: "563"
+      - text: "563"
+        file: "/sys/class/gpio/export"
       - file: "/sys/class/gpio/gpio522/direction"
         text: "in"  
 

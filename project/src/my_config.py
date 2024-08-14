@@ -3,12 +3,13 @@ import re
 import yaml #pip install pyyaml
 from pathlib import Path
 from constants import *
-from pin import CPin
+from pin import CPin, InitStep_t
 
 from threading import Lock, Thread
 import logging
 import os
 from collections import defaultdict
+from collections import namedtuple
 from typing import List, Dict
 
 from common import MySingletone
@@ -105,7 +106,7 @@ class MyConfig(metaclass=MySingletone):
                 if not pin.topic:
                     continue
 
-                pin.pool_period_ms = item.get("pool_period_ms", 0)    #TODO
+                pin.pool_period_ms = item.get("pool_period_ms", 0)
 
                 pin.file_value = item.get("file_value")
                 # TODO: Check file not empty and exist after init
@@ -118,10 +119,8 @@ class MyConfig(metaclass=MySingletone):
                     if OutFile is None:
                         continue                    # TODO: Err msg
                     OutText = InitStep.get("text")
-                    if OutText is None:
-                        continue
-
-                    pin.init.append( (OutFile, OutText) )
+ 
+                    pin.init.append( InitStep_t(OutFile, OutText) )
 
                 self.pins.setdefault( pin.topic, [] )   
                 self.pins[pin.topic].append(pin)
