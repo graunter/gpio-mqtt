@@ -39,12 +39,8 @@ class CTopinator:
       
 
     def on_connect(self, client, userdata, flags, rc):
-        
-        
         # Подписка при подключении означает, что если было потеряно соединение
         # и произошло переподключение - то подписка будет обновлена
-
-        # TODO: on_start() once
 
         if rc != 0:
             logging.debug(f"Failed to connect: {rc}. loop_forever() will retry connection")
@@ -127,7 +123,7 @@ if __name__ == "__main__":
     User = args.user if args.user is not None else Cfg.user
     Pasw = args.pasw if args.pasw is not None else Cfg.pasw
 
-    logging.debug("Try connection to " + str(Host) + " with port " + str(Port) )
+    logging.debug("Try connection to " + str(Host) + " with port " + str(Port) + ': '+User+'+'+Pasw)
 
     client.username_pw_set(User, Pasw)
     client.connect(Host, Port)

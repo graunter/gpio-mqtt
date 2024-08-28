@@ -42,6 +42,8 @@ class MyConfig(metaclass=MySingletone):
         cfg_files_p = []
         try:
             cfg_files_p = [f for f in (Path.home()/COMMON_PATH).iterdir() if f.match("*config.yaml")]
+        except FileNotFoundError as e:
+            logging.warning( "There is no file " + e.filename + " : " + ': Message: ' + format(e) ) 
         except Exception as e:
             logging.error( "There is some problem with" + COMMON_PATH + " - it will be skipped: " + ': Message: ' + format(e) ) 
 

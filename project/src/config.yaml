@@ -9,6 +9,29 @@ cfg:
   changes_only: True
   status_period_sec: 10000
 
+convert_tables:
+  - &bin_filter 
+    - name: on_value
+      broker: 1
+      file: 1
+    - name: off_value
+      broker: 0
+      file: 0
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"      
+  - &bool_to_bin 
+    - broker: "True"
+      file: 1
+    - broker: "False"
+      file: 0
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"
+
+
 sysfs_pins:
 
   # - title: none                           # ! Начало описания элемента
@@ -91,8 +114,10 @@ sysfs_pins:
     type: OUT
     topic_wr: "test/dev/DO_1/on"
     topic_rd: "test/dev/DO_1"
-    topic_cmd: "test/dev/DO_1/on"
-    topic_state: "test/dev/DO_1"
+    #topic_cmd: "test/dev/DO_1/on"
+    #topic_state: "test/dev/DO_1"
+    convert_table: *bin_filter
+
 
     file_value: "/sys/class/gpio/gpio542/value"
     create_start_topic: True
