@@ -3,7 +3,7 @@ import logging
 from threading import Thread
 import time
 from StateHolder import StateHolder
-from typing import List
+from typing import List, Dict
 from collections import namedtuple
 
 InitStep_t = namedtuple("InitStep_t", "OutFile Text")
@@ -23,6 +23,7 @@ class CPin:
         self.init: List[ InitStep_t ] = []
 
         self.PinVal = ""
+        self.conv_tbl: Dict[str, str] = []
 
 
     def pin_open(self):

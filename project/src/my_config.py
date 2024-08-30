@@ -124,6 +124,13 @@ class MyConfig(metaclass=MySingletone):
  
                     pin.init.append( InitStep_t(OutFile, OutText) )
 
+                for ConvStep in item.get("convert_table"):
+                    Name = ConvStep.get("Name")
+                    BrokerVal = ConvStep.get("Name")
+                    FileVal = ConvStep.get("file")
+
+                    print( f"{pin.name} = 1: {Name}, 2: {BrokerVal}, 3: {FileVal}" )
+
                 self.pins.setdefault( pin.topic, [] )   
                 self.pins[pin.topic].append(pin)
 

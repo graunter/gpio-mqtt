@@ -21,7 +21,7 @@ class CTopinator:
         logging.debug('Total ' + str(len(self.pins)) + ' was tacken')
 
     def signal_handler(self, signal, frame):
-        print('You pressed Ctrl+C!')
+        print(' You pressed Ctrl+C!')
         client.disconnect()
 
     # TODO: restore of all pins state from persistent storage
