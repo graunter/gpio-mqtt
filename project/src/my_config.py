@@ -37,6 +37,7 @@ class MyConfig(metaclass=MySingletone):
         self.user = ""
 
         self.pool_period_ms = 1000
+        self.status_period_sec = 0
         self.changes_only = False
 
         cfg_files_p = []
@@ -79,6 +80,8 @@ class MyConfig(metaclass=MySingletone):
         if MiscCfg is not None:
             self.pool_period_ms = MiscCfg.get("pool_period_ms", self.pool_period_ms)
             self.changes_only = MiscCfg.get("changes_only", self.changes_only) 
+            self.status_period_sec = MiscCfg.get("status_period_sec", self.status_period_sec) 
+            
 
     def extract_connection(self, CfgData: list):
 
@@ -104,9 +107,20 @@ class MyConfig(metaclass=MySingletone):
                     
                 pin.changes_only = item.get("changes_only", False)
 
-                pin.topic = item.get("topic")
-                if not pin.topic:
-                    continue
+
+                pin_topics = item.get("topic")
+                if not pin_topics:
+                    # Instead of one general topic for control - two can be used
+                    pin.topic_wr = item.get("topic_wr")
+                    if not pin.topic_wr: pin.topic_wr = item.get("topic_cmd", "")
+                    if not pin.topic_wr: logging.warning( f"The topic name for WR commands in {pin.name} is absent" )
+
+                    pin.topic_rd = item.get("topic_rd")
+                    if not pin.topic_rd: pin.topic_rd = item.get("topic_state", "")
+                    if not pin.topic_rd: logging.warning( f"The topic name for RD states in {pin.name} is absent" )                    
+                else:
+                    pin.topic_wr = pin_topics
+                    pin.topic_rd = pin_topics
 
                 pin.pool_period_ms = item.get("pool_period_ms", 0)
 
@@ -124,15 +138,21 @@ class MyConfig(metaclass=MySingletone):
  
                     pin.init.append( InitStep_t(OutFile, OutText) )
 
-                for ConvStep in item.get("convert_table"):
-                    Name = ConvStep.get("Name")
-                    BrokerVal = ConvStep.get("Name")
-                    FileVal = ConvStep.get("file")
+                pin.status_period_sec = item.get("status_period_sec", self.status_period_sec)
 
-                    print( f"{pin.name} = 1: {Name}, 2: {BrokerVal}, 3: {FileVal}" )
+                pin_convert_table = item.get("convert_table")
+                if pin_convert_table is not None:
+                    for ConvStep in item.get("convert_table"):
+                        Name = ConvStep.get("Name")
+                        BrokerVal = ConvStep.get("broker")
+                        FileVal = ConvStep.get("file")
 
-                self.pins.setdefault( pin.topic, [] )   
-                self.pins[pin.topic].append(pin)
+                        print( f"{pin.name} = 1: {Name}, 2: {BrokerVal}, 3: {FileVal}" )
+
+                        pin.conv_tbl.append( [BrokerVal, FileVal] )
+
+                self.pins.setdefault( pin.topic_wr, [] )   
+                self.pins[pin.topic_wr].append(pin)
 
 
 

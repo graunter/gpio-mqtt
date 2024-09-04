@@ -7,7 +7,7 @@ broker:
 cfg:
   pool_period_ms: 1000
   changes_only: True
-  status_period_sec: 10000
+  status_period_sec: 60
 
 convert_tables:
   - &bin_filter 
@@ -69,56 +69,62 @@ sysfs_pins:
   #   file_value: "/sys/class/gpio/gpio539/value"
   #   create_start_topic: True
 
-  - name: UserBtn
-    type: IN
-    pool_period_ms: 100
-    changes_only: True
-    topic: "test/dev/UserBtn"
-    file_value: "/sys/class/gpio/gpio522/value"
-    create_start_topic: True
-    init:
-      - text: "563"
-        file: "/sys/class/gpio/export"
-      - file: "/sys/class/gpio/gpio522/direction"
-        text: "in"  
+  # - name: UserBtn
+  #   type: IN
+  #   pool_period_ms: 100
+  #   changes_only: True
+  #   topic: "test/dev/UserBtn"
+  #   file_value: "/sys/class/gpio/gpio522/value"
+  #   create_start_topic: True
+  #   init:
+  #     - text: "563"
+  #       file: "/sys/class/gpio/export"
+  #     - file: "/sys/class/gpio/gpio522/direction"
+  #       text: "in"  
 
 
-  - name: DI_1
-    type: IN
-    topic: "test/dev/DI_1"
-    file_value: "/sys/class/gpio/gpio558/value"
-    create_start_topic: True
-    changes_only: True
+  # - name: DI_1
+  #   type: IN
+  #   topic: "test/dev/DI_1"
+  #   file_value: "/sys/class/gpio/gpio558/value"
+  #   create_start_topic: True
+  #   changes_only: True
 
-  - name: DI_2
-    type: IN
-    topic: "test/dev/DI_2"
-    file_value: "/sys/class/gpio/gpio557/value"
-    create_start_topic: True    
+  # - name: DI_2
+  #   type: IN
+  #   topic: "test/dev/DI_2"
+  #   file_value: "/sys/class/gpio/gpio557/value"
+  #   create_start_topic: True    
 
-  - name: DI_3
-    type: IN
-    topic: "test/dev/DI_3"
-    file_value: "/sys/class/gpio/gpio556/value"
-    create_start_topic: True
+  # - name: DI_3
+  #   type: IN
+  #   topic: "test/dev/DI_3"
+  #   file_value: "/sys/class/gpio/gpio556/value"
+  #   create_start_topic: True
 
-  - name: DI_4
-    type: IN
-    topic: "test/dev/DI_4"
-    file_value: "/sys/class/gpio/gpio555/value"
-    create_start_topic: True
+  # - name: DI_4
+  #   type: IN
+  #   topic: "test/dev/DI_4"
+  #   file_value: "/sys/class/gpio/gpio555/value"
+  #   create_start_topic: True
 
 ##############################################################33
 # Section
   - name: DO_1
     type: OUT
-    topic_wr: "test/dev/DO_1/on"
+    #topic_wr: "test/dev/DO_1/on"
     topic_rd: "test/dev/DO_1"
-    #topic_cmd: "test/dev/DO_1/on"
+    topic_cmd: "test/dev/DO_1/on"
     #topic_state: "test/dev/DO_1"
-    convert_table: *bin_filter
-
-
+    convert_table: 
+      - broker: "True"
+        file: "1"
+      - broker: "False"
+        file: "0"
+      - broker: "*"
+        file: null
+      - broker: null
+        file: "*"
     file_value: "/sys/class/gpio/gpio542/value"
     create_start_topic: True
     changes_only: True

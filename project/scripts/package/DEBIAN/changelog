@@ -4,5 +4,6 @@ gpio-mqtt (0.0.1) no-stable; urgency=medium
 
 [Sergey Zhukov]
 
+* 0.0.2 - Extra timing and value translation
   0.0.1 - just forwarding one pin state to broker
 
