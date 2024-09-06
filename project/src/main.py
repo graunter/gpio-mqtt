@@ -18,7 +18,7 @@ class CTopinator:
     def __init__(self, Cfg: MyConfig):
         self.cfg = Cfg
         self.pins = Cfg.get_components()
-        logging.debug('Total ' + str(len(self.pins)) + ' was tacken')
+        logging.debug('Total ' + str(len(self.pins)) + ' was taken')
 
     def signal_handler(self, signal, frame):
         print(' You pressed Ctrl+C!')

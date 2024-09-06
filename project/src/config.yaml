@@ -5,9 +5,9 @@ broker:
     password: ""
 
 cfg:
-  pool_period_ms: 1000
+  pool_period_ms: 100
   changes_only: True
-  status_period_sec: 60
+  status_period_sec: 10
 
 convert_tables:
   - &bin_filter 
@@ -69,18 +69,18 @@ sysfs_pins:
   #   file_value: "/sys/class/gpio/gpio539/value"
   #   create_start_topic: True
 
-  # - name: UserBtn
-  #   type: IN
-  #   pool_period_ms: 100
-  #   changes_only: True
-  #   topic: "test/dev/UserBtn"
-  #   file_value: "/sys/class/gpio/gpio522/value"
-  #   create_start_topic: True
-  #   init:
-  #     - text: "563"
-  #       file: "/sys/class/gpio/export"
-  #     - file: "/sys/class/gpio/gpio522/direction"
-  #       text: "in"  
+  - name: UserBtn
+    type: IN
+    pool_period_ms: 100
+    changes_only: True
+    topic: "test/dev/UserBtn"
+    file_value: "/sys/class/gpio/gpio522/value"
+    create_start_topic: True
+    init:
+      - text: "563"
+        file: "/sys/class/gpio/export"
+      - file: "/sys/class/gpio/gpio522/direction"
+        text: "in"  
 
 
   # - name: DI_1

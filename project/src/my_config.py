@@ -70,8 +70,9 @@ class MyConfig(metaclass=MySingletone):
     def extract_config(self, CfgData: list):
        
         self.extract_connection(CfgData)
+        self.extract_misc_conf(CfgData)        
         self.extract_components(CfgData)
-        self.extract_misc_conf(CfgData)
+
 
     def extract_misc_conf(self, CfgData: list):
 

@@ -123,10 +123,13 @@ class CPin:
             self.on_update()
 
     def self_status(self):
+        common_case = ["IN"]
         while True:
             time.sleep( self.status_period_sec )
-            if (timer()-self.upd_timer_begin) > self.status_period_sec :
-                self.client.publish( self.topic_rd, self.PinVal)  
+            match self.type:
+                case item if item in common_case:
+                    if (timer()-self.upd_timer_begin) > self.status_period_sec :
+                        self.client.publish( self.topic_rd, self.PinVal)  
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
         # Really this process is applicable for OUT only
