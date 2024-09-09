@@ -26,8 +26,9 @@ fi
 
 OUTPUT_PATH="../../build/$ARCHITECTURE"
 echo "OUTPUT_PATH=$OUTPUT_PATH"
-rm -rf $OUTPUT_PATH
 mkdir -p $OUTPUT_PATH
+rm -rf $OUTPUT_PATH/{*,.*}
+
 
 PROJECT_NAME=$(cat package/DEBIAN/control | grep 'Package:' | awk '{print$2}')
 version=$(cat package/DEBIAN/control | grep 'Version:' | awk '{print$2}')
