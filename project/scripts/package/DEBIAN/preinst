@@ -1,3 +1,4 @@
 #!/bin/bash
 
+mkdir -p /var/log/gpio-mqtt
 #mkdir -p ~/gpio-mqtt       # there is no used data yet

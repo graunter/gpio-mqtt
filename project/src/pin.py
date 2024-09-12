@@ -75,7 +75,7 @@ class CPin:
                     try:
                         self.check_open()
                         self.fd.seek(0)
-                        self.PinVal = self.fd.read()
+                        self.PinVal = self.fd.read().rstrip('\n')
                         if self.PinVal:
                             client.publish( self.topic_rd, self.PinVal)
                             client.publish( self.topic_wr, self.PinVal)
@@ -192,7 +192,7 @@ class CPin:
                 try:
                     self.check_open()
                     self.fd.seek(0)
-                    PinValNew = self.fd.read()
+                    PinValNew = self.fd.read().strip("\n")
 
                     if (timer()-self.upd_timer_begin) > self.status_period_sec :
                         self.upd_timer_begin = timer()
