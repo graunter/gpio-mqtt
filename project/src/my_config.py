@@ -25,7 +25,7 @@ class MyConfig(metaclass=MySingletone):
         system_p = Path( SYSTEM_PATH + COMMON_PATH )/CfgFile
         user_p = Path.home()/COMMON_PATH/CfgFile
 
-        logging.debug('golden file: ' + str(golden_p))
+        #logging.debug('golden file: ' + str(golden_p))
         logging.debug('system file: ' + str(system_p))
         logging.debug('user file: ' + str(user_p))
 
@@ -50,7 +50,8 @@ class MyConfig(metaclass=MySingletone):
 
         #TODO: The same with system files
 
-        cfg_files = [golden_p, system_p] + cfg_files_p
+        #cfg_files = [golden_p, system_p] + cfg_files_p # TODO: golden file should be without config for hardware
+        cfg_files = [system_p] + cfg_files_p
 
         for u_file in cfg_files:
             # todo: wrong file name processing

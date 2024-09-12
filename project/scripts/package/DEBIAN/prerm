@@ -2,7 +2,7 @@
 
 service gpio-mqtt stop
 
-sleep 3
+sleep 10
 
 rm -fr /var/log/gpio-mqtt
 rm -fr /opt//gpio-mqtt/__pycache__
