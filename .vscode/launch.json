@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             //"args": "${command:pickArgs}"
-            "args": "-v",
+            "args": "-v",// -c config.yaml",
             "sudo": true
         }
     ]

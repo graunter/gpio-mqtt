@@ -1,8 +1,8 @@
 broker:
-    host: "localhost"
-    port: 1883
-    user: ""
-    password: ""
+  host: "localhost"
+  port: 1883
+  user: ""
+  password: ""
 
 cfg:
   pool_period_ms: 100

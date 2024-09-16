@@ -17,17 +17,8 @@ from common import MySingletone
 
 class MyConfig(metaclass=MySingletone):
 
-    def __init__(self, CfgFile = CONFIG_FILE) -> None:
+    def __init__(self, CfgFile) -> None:
         
-        logging.debug("Load of configuration" )
-        
-        golden_p = Path(__file__).with_name(CfgFile)
-        system_p = Path( SYSTEM_PATH + COMMON_PATH )/CfgFile
-        user_p = Path.home()/COMMON_PATH/CfgFile
-
-        #logging.debug('golden file: ' + str(golden_p))
-        logging.debug('system file: ' + str(system_p))
-        logging.debug('user file: ' + str(user_p))
 
         self.pins = defaultdict(list[CPin])
 
@@ -40,23 +31,36 @@ class MyConfig(metaclass=MySingletone):
         self.status_period_sec = 0
         self.changes_only = False
 
-        cfg_files_p = []
-        try:
-            cfg_files_p = [f for f in (Path.home()/COMMON_PATH).iterdir() if f.match("*config.yaml")]
-        except FileNotFoundError as e:
-            logging.warning( "There is no file " + e.filename + " : " + ': Message: ' + format(e) ) 
-        except Exception as e:
-            logging.error( "There is some problem with" + COMMON_PATH + " - it will be skipped: " + ': Message: ' + format(e) ) 
+        self.NoNameCnt=0
 
-        #TODO: The same with system files
+        logging.debug("Load of configuration" )
+        
+        if CfgFile:
+            __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+            cfg_files = [ Path(os.path.join(__location__, CfgFile)) ]
+        else:
+            golden_p = Path(__file__).with_name(CONFIG_FILE)
+            system_p = Path( SYSTEM_PATH + COMMON_PATH )/CONFIG_FILE
+            #user_p = Path.home()/COMMON_PATH/CONFIG_FILE
 
-        #cfg_files = [golden_p, system_p] + cfg_files_p # TODO: golden file should be without config for hardware
-        cfg_files = [system_p] + cfg_files_p
+            cfg_files_p = []
+            try:
+                cfg_files_p = [f for f in (Path.home()/COMMON_PATH).iterdir() if f.match("*config.yaml")]
+            except FileNotFoundError as e:
+                logging.warning( "There is no file " + e.filename + " : " + ': Message: ' + format(e) ) 
+            except Exception as e:
+                logging.error( "There is some problem with " + COMMON_PATH + " - it will be skipped: " + ': Message: ' + format(e) ) 
 
-        for u_file in cfg_files:
+            #TODO: The same with system files
+
+            #cfg_files = [golden_p, system_p] + cfg_files_p # TODO: golden file should be without config for hardware
+            cfg_files = [system_p] + cfg_files_p
+
+        for cfg_file in cfg_files:
             # todo: wrong file name processing
             try:
-                with u_file.open("r") as user_f:
+                with cfg_file.open("r") as user_f:
+                    logging.debug('config file processing: ' + str(user_f.name))
                     try:
                         u_CfgData = yaml.safe_load(user_f)
                         self.extract_config(u_CfgData)
@@ -64,7 +68,7 @@ class MyConfig(metaclass=MySingletone):
                         logging.error("YAML file " + user_f.name + " is incorrect and will be skipped: " + ': Message: ' + format(e) )
                         pass     
             except Exception as e:
-                logging.error("Can't open file" + str(u_file) + " - it will be skipped: " + ': Message: ' + format(e) )
+                logging.error("Can't open file" + str(cfg_file) + " - it will be skipped: " + ': Message: ' + format(e) )
                 pass     
 
 
@@ -98,14 +102,13 @@ class MyConfig(metaclass=MySingletone):
 
     def extract_components(self, CfgData: list):
         
-        NoNameCnt=0
         if CfgData and CfgData["sysfs_pins"] is not None:
             for item in CfgData.get("sysfs_pins", []):
                 pin = CPin()
                 pin.name = item.get("name", "")
                 if not pin.name:
-                    pin.name = "NoName" + NoNameCnt
-                    NoNameCnt += 1
+                    pin.name = "NoName" + self.NoNameCnt
+                    self.NoNameCnt += 1
                     
                 pin.changes_only = item.get("changes_only", self.changes_only)
 
@@ -154,7 +157,6 @@ class MyConfig(metaclass=MySingletone):
 
                 self.pins.setdefault( pin.topic_wr, [] )   
                 self.pins[pin.topic_wr].append(pin)
-
 
 
     def get_components(self) -> Dict[str, List[CPin]]:   

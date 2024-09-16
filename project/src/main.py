@@ -88,6 +88,8 @@ if __name__ == "__main__":
                     help='Password for Broker connection.')  
     parser.add_argument('-v', '--verbose', dest='verbose', action="store_true", default=False,
                     help='Enable debug messages.')
+    parser.add_argument('-c', '--config', dest='cfg_file_name', action="store", default=False,
+                    help='Single config file for this app instance.')
 
     args = parser.parse_args()
     
@@ -97,7 +99,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=loglevel)
     
-    Cfg = MyConfig()
+    Cfg = MyConfig(args.cfg_file_name)
     
     topinator = CTopinator(Cfg)
     if args.verbose: 
