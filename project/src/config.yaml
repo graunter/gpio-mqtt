@@ -135,15 +135,20 @@ sysfs_pins:
 
   - name: DO_2
     type: OUT
-    topic: "test/dev/DO_2"
+    topic_wr: "test/dev/DO_2/on"
+    topic_rd: "test/dev/DO_2"
     file_value: "/sys/class/gpio/gpio541/value"
     create_start_topic: True    
+    changes_only: True
 
   - name: DO_3
     type: OUT
-    topic: "test/dev/DO_3"
+    topic_wr: "test/dev/DO_3/on"
+    topic_rd: "test/dev/DO_3"
     file_value: "/sys/class/gpio/gpio540/value"
     create_start_topic: True
+    changes_only: True
+
 
   # WB7
   # - name: Mod1_K12

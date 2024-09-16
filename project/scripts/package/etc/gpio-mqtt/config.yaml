@@ -4,108 +4,33 @@ broker:
     user: ""
     password: ""
 
+# Общие настройки (по умолчанию) для всех объектов приложения
 cfg:
   pool_period_ms: 100
   changes_only: True
-  status_period_sec: 10
+  status_period_sec: 600
 
 
 sysfs_pins:
 
-  # - title: none                           # ! Начало описания элемента
+  # - title: none                           # ! Начало описания элемента - обязательно отбивка через дефис и выравнивание
   #   name: TEXT                            # * Символическое имя, используемое для ссылок
   #   type: IN | OUT                        # !  
   #   pool_period_ms: #                     # * Возможность задать независимое время опроса
   #   changes_only: BOOL                    # * Возможность передавать только изменения параметра
-  #   topic: "full/path/to/topic_name"      # ! топик для управления значением
+  #   status_period_sec: #                  # * При установке параметра осуществляется периодическая безусловная передача значения
+  #   topic: "full/path/to/topic_name"      # ! топик для значения - сокращенная запись для чтения и записи
+  #   topic_wr: "full/path/wr/topic_name"   # * топик только для управления. Альтернативное название - topic_cmd
+  #   topic_rd: "full/path/rd/topic_name"   # * топик только для чтения значений. Альтернативное название - topic_rd
   #   file_value: "full/path/to/file_name"  # ! файл для записи значения
-  #   create_start_topic: BOOL              # * Для удобства топик управления создается при старте
+  #   create_start_topic: BOOL              # * Для удобства оператора - топики управления и чтения создается при старте
   #   init:                                 # * Инициализирующая последовательность при старте
   #     - file: "full/path/to/file_name1"   # * файл для записи значения
   #       text: "#"                         # * текст для записи в файл 
   #     - file: "full/path/to/file_name2"   # * Записей может быть несколько
-  #       text: "#""
-
-  # the following data could be used for test purposes
-  # JH D1
-  # - name: LedRed
-  #   type: OUT
-  #   pool_period_ms: 100
-  #   changes_only: False
-  #   topic: "test/dev/LedRed"
-  #   file_value: "/sys/class/gpio/gpio538/value"
-  #   create_start_topic: True
-  #   init:
-  #     - file: "/sys/class/gpio/export"
-  #       text: "538"
-  #     - file: "/sys/class/gpio/gpio563/direction"
-  #       text: "out"
-
-  # - name: LedGreen
-  #   type: OUT
-  #   topic: "test/dev/LedGreen"
-  #   file_value: "/sys/class/gpio/gpio539/value"
-  #   create_start_topic: True
-
-  - name: UserBtn
-    type: IN
-    pool_period_ms: 100
-    changes_only: True
-    topic: "test/dev/UserBtn"
-    file_value: "/sys/class/gpio/gpio522/value"
-    create_start_topic: True
-    init:
-      - text: "563"
-        file: "/sys/class/gpio/export"
-      - file: "/sys/class/gpio/gpio522/direction"
-        text: "in"  
-
-
-  - name: DI_1
-    type: IN
-    topic: "test/dev/DI_1"
-    file_value: "/sys/class/gpio/gpio558/value"
-    create_start_topic: True
-    changes_only: True
-
-  - name: DI_2
-    type: IN
-    topic: "test/dev/DI_2"
-    file_value: "/sys/class/gpio/gpio557/value"
-    create_start_topic: True    
-
-  - name: DI_3
-    type: IN
-    topic: "test/dev/DI_3"
-    file_value: "/sys/class/gpio/gpio556/value"
-    create_start_topic: True
-
-  - name: DI_4
-    type: IN
-    topic: "test/dev/DI_4"
-    file_value: "/sys/class/gpio/gpio555/value"
-    create_start_topic: True
-
-##############################################################33
-# Section
-  - name: DO_1
-    type: OUT
-    topic: "test/dev/DO_1"
-    file_value: "/sys/class/gpio/gpio542/value"
-    create_start_topic: True
-    changes_only: True
-    pool_period_ms: 1000
-    status_period_sec: 600
-
-  - name: DO_2
-    type: OUT
-    topic: "test/dev/DO_2"
-    file_value: "/sys/class/gpio/gpio541/value"
-    create_start_topic: True    
-
-  - name: DO_3
-    type: OUT
-    topic: "test/dev/DO_3"
-    file_value: "/sys/class/gpio/gpio540/value"
-    create_start_topic: True
-
+  #       text: "#"
+  #   convert_table:                        # * Таблица преобразований из значения брокера в файл контроллера
+  #     - broker: "True"                    # * Строка получаемая с брокера
+  #       file: "1"                         # * Реальное значение для записи в файл
+  #     - broker: TEXT
+  #       file: TEXT

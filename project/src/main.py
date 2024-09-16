@@ -52,9 +52,10 @@ class CTopinator:
             for OneComp in CompLst:
                 OneComp.on_connect( client )
 
-        self.pull_thrd = Thread(target=self.on_pool)
-        self.pull_thrd.daemon = True
-        self.pull_thrd.start()
+        if( Cfg.pool_period_ms > 0 ):
+            self.pull_thrd = Thread(target=self.on_pool)
+            self.pull_thrd.daemon = True
+            self.pull_thrd.start()
 
     def on_pool(self):
         time.sleep(Cfg.pool_period_ms/1000)

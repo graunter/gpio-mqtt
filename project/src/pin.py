@@ -14,7 +14,7 @@ class CPin:
         self.name = ""
         self.pool_period_ms = 0
         self.status_period_sec = 0
-        self.upd_timer_begin = 0
+        self.status_timer_begin = 0
         self.changes_only = False
         self.topic_rd = ""
         self.topic_wr = ""
@@ -24,7 +24,7 @@ class CPin:
         self.type = ""
         self.create_start_topic = True
 
-        self.init: List[ InitStep_t ] = []
+        self.initFs: List[ InitStep_t ] = []
 
         self.PinVal = ""
         self.conv_tbl: List[str, str] = []
@@ -39,14 +39,14 @@ class CPin:
 
     def on_start(self):
 
-        for one_step in self.init:
+        for one_step in self.initFs:
             out_file = one_step.OutFile
             text = one_step.Text
             try:
                 with open(out_file, "w") as this_file:
                     this_file.write(text)
             except Exception as e:
-                logging.error("Some problem with file: " + str(self.name) + " - this init step skipped: " + ': Message: ' + format(e) )                
+                logging.error("Some problem with file: " + str(self.name) + " - this init step was skipped: " + ': Message: ' + format(e) )                
 
 
         match self.type:
@@ -59,13 +59,13 @@ class CPin:
                     self.fd.flush()          
 
                 except Exception as e:
-                    logging.error("Can't open file: " + str(self.name) + " - state not restored: " + ': Message: ' + format(e) )
+                    logging.error("Can't open file: " + str(self.name) + " - state was not restored: " + ': Message: ' + format(e) )
 
 
     def on_connect(self, client: mqtt.Client):
 
         self.client = client
-        self.upd_timer_begin = timer()
+        self.status_timer_begin = timer()
         
         common_case = ["IN", "OUT"]
 
@@ -123,12 +123,12 @@ class CPin:
             self.on_update()
 
     def self_status(self):
-        common_case = ["IN"]
+        common_case = ["IN", "OUT"]
         while True:
             time.sleep( self.status_period_sec )
             match self.type:
                 case item if item in common_case:
-                    if (timer()-self.upd_timer_begin) > self.status_period_sec :
+                    if (timer()-self.status_timer_begin) > self.status_period_sec :
                         self.client.publish( self.topic_rd, self.PinVal)  
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
@@ -168,40 +168,22 @@ class CPin:
 
     def on_update( self ):
         match self.type:
-            case "OUT":     
-                # TODO: Should we update output pins periodicaly?
-                # try:
-                #     self.check_open()
-                #     self.fd.seek(0)
 
-                #     if not self.changes_only:
-                #         self.fd.write(self.PinVal)
-                #         self.fd.flush()
-                #     else:
-                #         PinValNew = self.fd.read()                        
-                        
-                #         if (self.PinVal != PinValNew):
-                #             self.fd.write(self.PinVal)
-                #             self.fd.flush()              
-
-                # except Exception as e:
-                #     logging.error("Can't write to file " + str(self.file_value) + " - this update will be skipped: " + ': Message: ' + format(e) )
-                pass 
-
-            case "IN":
+            case "IN" | "OUT":
                 try:
                     self.check_open()
                     self.fd.seek(0)
                     PinValNew = self.fd.read().strip("\n")
 
-                    if (timer()-self.upd_timer_begin) > self.status_period_sec :
-                        self.upd_timer_begin = timer()
+                    if (timer()-self.status_timer_begin) > self.status_period_sec :
+                        self.status_timer_begin = timer()
                         self.client.publish( self.topic_rd, PinValNew)
                     else:
                         if not self.changes_only:
                             self.client.publish( self.topic_rd, PinValNew)
                         elif self.PinVal != PinValNew:
                             self.client.publish( self.topic_rd, PinValNew)
+                            logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(self.PinVal) + '"')
 
                     self.PinVal = PinValNew
 

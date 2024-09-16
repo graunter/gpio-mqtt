@@ -107,8 +107,7 @@ class MyConfig(metaclass=MySingletone):
                     pin.name = "NoName" + NoNameCnt
                     NoNameCnt += 1
                     
-                pin.changes_only = item.get("changes_only", False)
-
+                pin.changes_only = item.get("changes_only", self.changes_only)
 
                 pin_topics = item.get("topic")
                 if not pin_topics:
@@ -124,7 +123,7 @@ class MyConfig(metaclass=MySingletone):
                     pin.topic_wr = pin_topics
                     pin.topic_rd = pin_topics
 
-                pin.pool_period_ms = item.get("pool_period_ms", 0)
+                pin.pool_period_ms = item.get("pool_period_ms", self.pool_period_ms)
 
                 pin.file_value = item.get("file_value")
                 # TODO: Check file not empty and exist after init
@@ -138,7 +137,7 @@ class MyConfig(metaclass=MySingletone):
                         continue                    # TODO: Err msg
                     OutText = InitStep.get("text")
  
-                    pin.init.append( InitStep_t(OutFile, OutText) )
+                    pin.initFs.append( InitStep_t(OutFile, OutText) )
 
                 pin.status_period_sec = item.get("status_period_sec", self.status_period_sec)
 
