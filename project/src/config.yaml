@@ -83,33 +83,33 @@ sysfs_pins:
         text: "in"  
 
 
-  # - name: DI_1
-  #   type: IN
-  #   topic: "test/dev/DI_1"
-  #   file_value: "/sys/class/gpio/gpio558/value"
-  #   create_start_topic: True
-  #   changes_only: True
+  - name: DI_1
+    type: IN
+    topic: "test/dev/DI_1"
+    file_value: "/sys/class/gpio/gpio558/value"
+    create_start_topic: True
+    changes_only: True
 
-  # - name: DI_2
-  #   type: IN
-  #   topic: "test/dev/DI_2"
-  #   file_value: "/sys/class/gpio/gpio557/value"
-  #   create_start_topic: True    
+  - name: DI_2
+    type: IN
+    topic: "test/dev/DI_2"
+    file_value: "/sys/class/gpio/gpio557/value"
+    create_start_topic: True    
 
-  # - name: DI_3
-  #   type: IN
-  #   topic: "test/dev/DI_3"
-  #   file_value: "/sys/class/gpio/gpio556/value"
-  #   create_start_topic: True
+  - name: DI_3
+    type: IN
+    topic: "test/dev/DI_3"
+    file_value: "/sys/class/gpio/gpio556/value"
+    create_start_topic: True
 
-  # - name: DI_4
-  #   type: IN
-  #   topic: "test/dev/DI_4"
-  #   file_value: "/sys/class/gpio/gpio555/value"
-  #   create_start_topic: True
+  - name: DI_4
+    type: IN
+    topic: "test/dev/DI_4"
+    file_value: "/sys/class/gpio/gpio555/value"
+    create_start_topic: True
 
-##############################################################33
-# Section
+#############################################################33
+Section
   - name: DO_1
     type: OUT
     #topic_wr: "test/dev/DO_1/on"

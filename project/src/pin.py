@@ -22,7 +22,7 @@ class CPin:
         self.file_value = ""
         self.fd = None
         self.type = ""
-        self.create_start_topic = True
+        self.create_start_topic = False
 
         self.initFs: List[ InitStep_t ] = []
 
