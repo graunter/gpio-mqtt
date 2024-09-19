@@ -6,5 +6,5 @@ Priority: optional
 Depends: python3 (>= 3.9)
 Maintainer: STDU Zhukov Sergey <graunter@gmail.com>
 Architecture: all
-Installed-Size: 7000
+Installed-Size: 8000
 Description: Service for controllers pins monitoring and handling
