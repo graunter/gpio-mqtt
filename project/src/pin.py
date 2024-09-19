@@ -22,7 +22,10 @@ class CPin:
         self.file_value = ""
         self.fd = None
         self.type = ""
-        self.create_start_topic = True
+        self.create_start_topic = False
+        self.pause_fl = False
+        self.pull_thrd = None
+        self.status_thrd = None
 
         self.initFs: List[ InitStep_t ] = []
 
@@ -106,13 +109,15 @@ class CPin:
             case _:
                 raise ValueError(f'Unknown pin type: {self.type}')
     
+        self.pause_fl = False
+
         # an individual pooling thread for every pin
-        if( self.pool_period_ms > 0 ):
+        if( self.pool_period_ms > 0 and not self.pull_thrd ):
             self.pull_thrd = Thread(target=self.self_pool)
             self.pull_thrd.daemon = True
             self.pull_thrd.start()
 
-        if( self.status_period_sec > 0):
+        if( self.status_period_sec > 0 and not self.status_thrd ):
             self.status_thrd = Thread(target=self.self_status)
             self.status_thrd.daemon = True
             self.status_thrd.start()            
@@ -120,16 +125,21 @@ class CPin:
     def self_pool(self):
         while True:
             time.sleep(self.pool_period_ms/1000)
-            self.on_update()
+            if not self.pause_fl:
+                self.on_update()
 
     def self_status(self):
         common_case = ["IN", "OUT"]
         while True:
             time.sleep( self.status_period_sec )
-            match self.type:
-                case item if item in common_case:
-                    if (timer()-self.status_timer_begin) > self.status_period_sec :
-                        self.client.publish( self.topic_rd, self.PinVal)  
+            if not self.pause_fl:
+                match self.type:
+                    case item if item in common_case:
+                        if (timer()-self.status_timer_begin) > self.status_period_sec :
+                            self.client.publish( self.topic_rd, self.PinVal )  
+
+    def on_disconnect(self):
+        self.pause_fl = True
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
         # Really this process is applicable for OUT only
