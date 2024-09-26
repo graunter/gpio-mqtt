@@ -108,8 +108,10 @@ sysfs_pins:
     file_value: "/sys/class/gpio/gpio555/value"
     create_start_topic: True
 
+##############################################################33
+# Section
 #############################################################33
-Section
+
   - name: DO_1
     type: OUT
     #topic_wr: "test/dev/DO_1/on"

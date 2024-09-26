@@ -15,7 +15,10 @@ def debug(msg):
         print (msg + "\n")
 
 class CTopinator:
+
     def __init__(self, Cfg: MyConfig):
+        self.pause_fl = True
+        self.pull_thrd = None
         self.cfg = Cfg
         self.pins = Cfg.get_components()
         logging.debug('Total ' + str(len(self.pins)) + ' was taken')
@@ -53,18 +56,29 @@ class CTopinator:
                 OneComp.on_connect( client )
 
         if( Cfg.pool_period_ms > 0 ):
-            self.pull_thrd = Thread(target=self.on_pool)
-            self.pull_thrd.daemon = True
-            self.pull_thrd.start()
+            self.pause_fl = False
+            if not self.pull_thrd:
+                self.pull_thrd = Thread(target=self.on_pool)
+                self.pull_thrd.daemon = True
+                self.pull_thrd.start()
+
+    def on_disconnect(self):
+        logging.debug('Disconected from client') 
+        self.pause_fl = True
+
+        for i, (key, CompLst) in enumerate(self.pins.items()):
+            for OneComp in CompLst:
+                OneComp.on_disconnect()
 
     def on_pool(self):
-        time.sleep(Cfg.pool_period_ms/1000)
         while True:
-            for i, (key, CompLst) in enumerate(self.pins.items()):
-                for OneComp in CompLst:
-                    # iterate by not initialized elements only
-                    if OneComp.pool_period_ms == 0: OneComp.on_update()
-
+            time.sleep(Cfg.pool_period_ms/1000)
+            if not self.pause_fl:
+                for i, (key, CompLst) in enumerate(self.pins.items()):
+                    for OneComp in CompLst:
+                        # iterate by not initialized elements only
+                        if OneComp.pool_period_ms == 0: OneComp.on_update()
+                    
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
 
@@ -116,6 +130,8 @@ if __name__ == "__main__":
     client = mqtt.Client()
     client.on_connect = topinator.on_connect
     client.on_message = topinator.on_message
+    client.on_disconnect = lambda client, userdata, rc: topinator.on_disconnect() 
+    client.on_socket_close = lambda client, userdata, rc: topinator.on_disconnect() 
 
     # For test purposes
     #if args.verbose: 
