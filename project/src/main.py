@@ -145,7 +145,15 @@ if __name__ == "__main__":
     logging.debug("Try connection to " + str(Host) + " with port " + str(Port) + ': '+User+'+'+Pasw)
 
     client.username_pw_set(User, Pasw)
-    client.connect(Host, Port)
+ 
+    ConnectedFl = False
+    while not ConnectedFl:
+        try:
+            client.connect(Host, Port)
+            ConnectedFl = True
+        except:
+            logging.debug(f"Can't connect - wait for some seconds.." )
+            time.sleep(5)
         
     client.loop_forever()
 
