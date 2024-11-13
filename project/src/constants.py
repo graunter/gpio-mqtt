@@ -1,8 +1,11 @@
 
 SYSTEM_PATH = "/etc/"
+VAR_PATH = "/var/"
 
 COMMON_PATH = "gpio-mqtt/"
 
 CONFIG_FILE = "config.yaml"
+
+STATE_DIR = "state"
 
 CONFIG_FILE_SYSTEM_FULL_PATH = SYSTEM_PATH + COMMON_PATH + CONFIG_FILE

@@ -1,21 +1,180 @@
 broker:
-    host: "localhost"
-    port: 1883
-    user: ""
-    password: ""
+  host: "localhost"
+  port: 1883
+  user: ""
+  password: ""
 
 cfg:
-  pool_period_ms: 1000
-  changes_only: False
-
-sfs_pins:
-  -name: TestPin
   pool_period_ms: 100
-  changes_only: False
-  file_value: "/sys/devices/platform/soc/1c20800.pinctrl/gpiochip0/gpio/gpio132/value"
-  type: out
-  file_dir: "/sys/devices/platform/soc/1c20800.pinctrl/gpiochip0/gpio/gpio132/direction"
-  
+  changes_only: True
+  status_period_sec: 10
+
+convert_tables:
+  - &bin_filter 
+    - name: on_value
+      broker: 1
+      file: 1
+    - name: off_value
+      broker: 0
+      file: 0
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"      
+  - &bool_to_bin 
+    - broker: "True"
+      file: 1
+    - broker: "False"
+      file: 0
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"
+
+
+sysfs_pins:
+
+  # - title: none                           # ! Начало описания элемента
+  #   name: TEXT                            # * Символическое имя, используемое для ссылок
+  #   type: IN | OUT                        # !  
+  #   pool_period_ms: #                     # * Возможность задать независимое время опроса
+  #   changes_only: BOOL                    # * Возможность передавать только изменения параметра
+  #   topic: "full/path/to/topic_name"      # ! топик для управления значением
+  #   file_value: "full/path/to/file_name"  # ! файл для записи значения
+  #   create_start_topic: BOOL              # * Для удобства топик управления создается при старте
+  #   init:                                 # * Инициализирующая последовательность при старте
+  #     - file: "full/path/to/file_name1"   # * файл для записи значения
+  #       text: "#"                         # * текст для записи в файл 
+  #     - file: "full/path/to/file_name2"   # * Записей может быть несколько
+  #       text: "#""
 
   # the following data could be used for test purposes
+  # JH D1
+  # - name: LedRed
+  #   type: OUT
+  #   pool_period_ms: 100
+  #   changes_only: False
+  #   topic: "test/dev/LedRed"
+  #   file_value: "/sys/class/gpio/gpio538/value"
+  #   create_start_topic: True
+  #   init:
+  #     - file: "/sys/class/gpio/export"
+  #       text: "538"
+  #     - file: "/sys/class/gpio/gpio563/direction"
+  #       text: "out"
+
+  # - name: LedGreen
+  #   type: OUT
+  #   topic: "test/dev/LedGreen"
+  #   file_value: "/sys/class/gpio/gpio539/value"
+  #   create_start_topic: True
+
+  - name: UserBtn
+    type: IN
+    pool_period_ms: 100
+    changes_only: True
+    topic: "test/dev/UserBtn"
+    file_value: "/sys/class/gpio/gpio522/value"
+    create_start_topic: True
+    init:
+      - text: "563"
+        file: "/sys/class/gpio/export"
+      - file: "/sys/class/gpio/gpio522/direction"
+        text: "in"  
+
+
+  - name: DI_1
+    type: IN
+    topic: "test/dev/DI_1"
+    file_value: "/sys/class/gpio/gpio558/value"
+    create_start_topic: True
+    changes_only: True
+
+  - name: DI_2
+    type: IN
+    topic: "test/dev/DI_2"
+    file_value: "/sys/class/gpio/gpio557/value"
+    create_start_topic: True    
+
+  - name: DI_3
+    type: IN
+    topic: "test/dev/DI_3"
+    file_value: "/sys/class/gpio/gpio556/value"
+    create_start_topic: True
+
+  - name: DI_4
+    type: IN
+    topic: "test/dev/DI_4"
+    file_value: "/sys/class/gpio/gpio555/value"
+    create_start_topic: True
+
+##############################################################33
+# Section
+#############################################################33
+
+  - name: DO_1
+    type: OUT
+    #topic_wr: "test/dev/DO_1/on"
+    topic_rd: "test/dev/DO_1"
+    topic_cmd: "test/dev/DO_1/on"
+    #topic_state: "test/dev/DO_1"
+    convert_table: 
+      - broker: "True"
+        file: "1"
+      - broker: "False"
+        file: "0"
+      - broker: "*"
+        file: null
+      - broker: null
+        file: "*"
+    file_value: "/sys/class/gpio/gpio542/value"
+    create_start_topic: True
+    changes_only: True
+    pool_period_ms: 1000
+    status_period_sec: 600
+
+######################################################################
+
+  - name: DO_2
+    type: OUT
+    topic_wr: "test/dev/DO_2/on"
+    topic_rd: "test/dev/DO_2"
+    file_value: "/sys/class/gpio/gpio541/value"
+    create_start_topic: True    
+    changes_only: True
+
+  - name: DO_3
+    type: OUT
+    topic_wr: "test/dev/DO_3/on"
+    topic_rd: "test/dev/DO_3"
+    file_value: "/sys/class/gpio/gpio540/value"
+    create_start_topic: True
+    changes_only: True
+
+
+  # WB7
+  # - name: Mod1_K12
+  #   pool_period_ms: 100
+  #   changes_only: False
+  #   topic: "dev/extender/do12"
+  #   file_value: "/sys/class/gpio/gpio563/value"
+  #   type: OUT
+  #   create_start_topic: True
+  #   init:
+  #     - file: "/sys/class/gpio/export"
+  #       text: "563"
+  #     - file: "/sys/class/gpio/gpio563/direction"
+  #       text: "out"
+  # - name: Mod2_DI1
+  #   pool_period_ms: 100
+  #   changes_only: False
+  #   topic: "dev/extender/di1"
+  #   file_value: "/sys/class/gpio/gpio512/value"
+  #   type: IN
+  #   create_start_topic: True
+  #   init:
+  #     - file: "/sys/class/gpio/export"
+  #       text: "563"
+  #     - file: "/sys/class/gpio/gpio563/direction"
+  #       text: "in"  
 

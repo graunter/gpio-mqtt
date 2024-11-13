@@ -1,10 +1,10 @@
 
 Package: gpio-mqtt
-Version: 0.0.1
+Version: 0.0.6
 Section: embedded
 Priority: optional
-Depends: python3 (>= 3.5.3), python3-paho-mqtt (>= 1.5)
+Depends: python3 (>= 3.9)
 Maintainer: STDU Zhukov Sergey <graunter@gmail.com>
 Architecture: all
-Installed-Size: 6000
+Installed-Size: 8000
 Description: Service for controllers pins monitoring and handling
