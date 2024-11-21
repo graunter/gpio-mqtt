@@ -52,17 +52,16 @@ class CPin:
                 logging.error("Some problem with file: " + str(self.name) + " - this init step was skipped: " + ': Message: ' + format(e) )                
 
 
-        match self.type:
-            case "OUT":
-                try:
-                    storage = StateHolder()
-                    self.PinVal = storage.load(self.name)
-                    self.check_open()
-                    self.fd.write(self.PinVal)
-                    self.fd.flush()          
+        if self.type == "OUT":
+            try:
+                storage = StateHolder()
+                self.PinVal = storage.load(self.name)
+                self.check_open()
+                self.fd.write(self.PinVal)
+                self.fd.flush()          
 
-                except Exception as e:
-                    logging.error("Can't open file: " + str(self.name) + " - state was not restored: " + ': Message: ' + format(e) )
+            except Exception as e:
+                logging.error("Can't open file: " + str(self.name) + " - state was not restored: " + ': Message: ' + format(e) )
 
 
     def on_connect(self, client: mqtt.Client):
@@ -73,41 +72,37 @@ class CPin:
         common_case = ["IN", "OUT"]
 
         if(self.create_start_topic):
-            match self.type:
-                case item if item in common_case:
-                    try:
-                        self.check_open()
-                        self.fd.seek(0)
-                        self.PinVal = self.fd.read().rstrip('\n')
-                        if self.PinVal:
-                            client.publish( self.topic_rd, self.PinVal)
-                            client.publish( self.topic_wr, self.PinVal)
-                            logging.debug('Create topic: ' + self.topic_rd + "for pin " + self.file_value)
-                        else:
-                            #TODO
-                            pass
+            if self.type in common_case:
+                try:
+                    self.check_open()
+                    self.fd.seek(0)
+                    self.PinVal = self.fd.read().rstrip('\n')
+                    if self.PinVal:
+                        client.publish( self.topic_rd, self.PinVal)
+                        client.publish( self.topic_wr, self.PinVal)
+                        logging.debug('Create topic: ' + self.topic_rd + "for pin " + self.file_value)
+                    else:
+                        #TODO
+                        pass
 
-                    except Exception as e:
-                        logging.error("Can't read file " + str(self.file_value) + " - init of this topic will be skipped: " + ': Message: ' + format(e) )
-
-                case _:
-                    raise ValueError(f'Unknown pin type: {self.type}')
+                except Exception as e:
+                    logging.error("Can't read file " + str(self.file_value) + " - init of this topic will be skipped: " + ': Message: ' + format(e) )
+            else:
+                raise ValueError(f'Unknown pin type: {self.type}')
 
  
-        match self.type:
-            case "OUT":
-                [res, mid] = self.client.subscribe( self.topic_wr )  
-                if res == mqtt.MQTT_ERR_SUCCESS:
-                    logging.debug('Waiting OUT topic: ' + self.topic_wr + "for pin " + self.file_value)
-                else:
-                    logging.error('Failed sub OUT topic: ' + self.topic_wr + "for pin " + self.file_value)                    
+        if self.type == "OUT":
+            [res, mid] = self.client.subscribe( self.topic_wr )  
+            if res == mqtt.MQTT_ERR_SUCCESS:
+                logging.debug('Waiting OUT topic: ' + self.topic_wr + "for pin " + self.file_value)
+            else:
+                logging.error('Failed sub OUT topic: ' + self.topic_wr + "for pin " + self.file_value)                    
 
-            case "IN":
-                #TODO: subscribe for interrupt
-                pass
-        
-            case _:
-                raise ValueError(f'Unknown pin type: {self.type}')
+        elif self.type ==  "IN":
+            #TODO: subscribe for interrupt
+            pass
+        else:
+            raise ValueError(f'Unknown pin type: {self.type}')
     
         self.pause_fl = False
 
@@ -133,10 +128,9 @@ class CPin:
         while True:
             time.sleep( self.status_period_sec )
             if not self.pause_fl:
-                match self.type:
-                    case item if item in common_case:
-                        if (timer()-self.status_timer_begin) > self.status_period_sec :
-                            self.client.publish( self.topic_rd, self.PinVal )  
+                if self.type in common_case:
+                    if (timer()-self.status_timer_begin) > self.status_period_sec :
+                        self.client.publish( self.topic_rd, self.PinVal )  
 
     def on_disconnect(self):
         self.pause_fl = True
@@ -177,29 +171,30 @@ class CPin:
 
 
     def on_update( self ):
-        match self.type:
 
-            case "IN" | "OUT":
-                try:
-                    self.check_open()
-                    self.fd.seek(0)
-                    PinValNew = self.fd.read().strip("\n")
+        common_case = ["IN", "OUT"]
 
-                    if (timer()-self.status_timer_begin) > self.status_period_sec :
-                        self.status_timer_begin = timer()
+        if self.type in common_case:
+            try:
+                self.check_open()
+                self.fd.seek(0)
+                PinValNew = self.fd.read().strip("\n")
+
+                if (timer()-self.status_timer_begin) > self.status_period_sec :
+                    self.status_timer_begin = timer()
+                    self.client.publish( self.topic_rd, PinValNew)
+                else:
+                    if not self.changes_only:
                         self.client.publish( self.topic_rd, PinValNew)
-                    else:
-                        if not self.changes_only:
-                            self.client.publish( self.topic_rd, PinValNew)
-                        elif self.PinVal != PinValNew:
-                            self.client.publish( self.topic_rd, PinValNew)
-                            logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(self.PinVal) + '"')
+                    elif self.PinVal != PinValNew:
+                        self.client.publish( self.topic_rd, PinValNew)
+                        logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(self.PinVal) + '"')
 
-                    self.PinVal = PinValNew
+                self.PinVal = PinValNew
 
-                except Exception as e:
-                    logging.error("Can't read file " + str(self.file_value) + " - update of this topic will be skipped: " + ': Message: ' + format(e) )
+            except Exception as e:
+                logging.error("Can't read file " + str(self.file_value) + " - update of this topic will be skipped: " + ': Message: ' + format(e) )
 
-            case _:
-                raise ValueError(f'Unknown pin type: {self.type}')
+        else:
+            raise ValueError(f'Unknown pin type: {self.type}')
 
