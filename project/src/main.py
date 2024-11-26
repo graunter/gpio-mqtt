@@ -13,6 +13,7 @@ from wb_side_io import DO_ADR_RANGE, DI_ADR_RANGE
 from i2c import I2C
 import smbus ## pip install smbus-cffi
 
+
 verbose = False
 
 def debug(msg):
@@ -48,50 +49,22 @@ class CTopinator:
         # wb side moduls
         wbus = I2C(smbus.SMBus(1))
 
-        # looking for DO
+        # looking for DIO
         devs_adr = wbus.scan()
         logging.info(f'Side I2C addresses were found: {list(map(hex, devs_adr))}')
 
-
-        type_sw_cnt = 0
-        # Position of ext calculation
-        ordered_dev = []
-        if DO_LEAD_ADR in devs_adr:
-            # the first is DO
-            last_mod_type = MCP23017.IO_type_enum.e_DO
-            last_mod_adr = DO_LEAD_ADR
-        elif DI_LEAD_ADR in devs_adr:
-            last_mod_type = MCP23017.IO_type_enum.e_DI
-            last_mod_adr = DI_LEAD_ADR
-        else:
-            # there is no Discrete modules on the bus
-            return
+        if devs_adr and (len(devs_adr)!= 0):
+            test_lst = MCP23017.get_ord_adr_list(wbus.get_current_adr_list())
+        logging.info(f'Side modules ordered by address: {list(map(hex, test_lst))}')
+        logging.info(f'Stop')
         
-        ordered_dev.append(MCP23017(last_mod_adr, wbus, last_mod_type))
 
-        while next_mod_adr := ordered_dev[-1].get_next_mod_adr():
-            if next_mod_adr in DO_ADR_RANGE:
-                next_mod_type = MCP23017.IO_type_enum.e_DO
-            elif next_mod_adr in DI_ADR_RANGE:
-                next_mod_type = MCP23017.IO_type_enum.e_DI
-            else:
-                # TODO: next one is unsupported module type - just do nothing
-                break
-            
-            if next_mod_type != last_mod_type:
-                type_sw_cnt =+ 1
-
-                if type_sw_cnt >= 2:
-                    logging.error(f'Error in HW configuration after addrss {last_mod_adr}')
-                    raise NameError('Error in HW configuration')
-
-            ordered_dev.append(MCP23017(next_mod_adr, wbus, next_mod_type))
-
-            last_mod_type = next_mod_type
-            last_mod_adr = next_mod_adr
+        ordered_dev = []
+        
+        #ordered_dev.append(MCP23017(last_mod_adr, wbus, last_mod_type))
 
 
-      
+     
 
     def on_connect(self, client, userdata, flags, rc):
         # Подписка при подключении означает, что если было потеряно соединение

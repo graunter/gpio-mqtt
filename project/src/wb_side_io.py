@@ -3,6 +3,8 @@ from i2c import I2C
 import numpy as np
 #pip install --upgrade pip
 #apt install cmake
+import smbus ## pip install smbus-cffi
+import logging
 
 
 IODIRA   = 0x00  # Pin direction register
@@ -66,6 +68,7 @@ DO_LEAD_ADR = 0x20
 DO_ADR_RANGE = [0x20, 0x21, 0x22, 0x24]
 DI_LEAD_ADR = 0x27
 DI_ADR_RANGE = [ 0x27, 0x26, 0x25, 0x23 ]
+DI_HW_ADR_RANGE = [0b111, 0b110, 0b101, 0b011]
 
 ADR_MASK = 0b0111
 ADR_PRFX = 0b0100
@@ -105,7 +108,7 @@ class MCP23017:
 
 	def __init__(self, address, i2c: I2C, io_type: IO_type_enum):
 		self.i2c = i2c
-		self.address = address
+		self.address = np.uint8(address)
 		self.type = io_type
 
 	def set_all_output(self):
@@ -238,28 +241,88 @@ class MCP23017:
 	def bitmask(self, gpio):
 		return 1 << (gpio % 8)
 	
+	@staticmethod
+	def get_ord_adr_list(last_adr_lst: list) -> list:
+		
+		adr_list = []
+
+		if DO_LEAD_ADR in last_adr_lst:
+			cur_adr = DO_LEAD_ADR
+			cur_type = MCP23017.IO_type_enum.e_DO
+		elif DI_LEAD_ADR in last_adr_lst:
+			cur_adr = DI_LEAD_ADR
+			cur_type = MCP23017.IO_type_enum.e_DI			
+		else:
+			return adr_list
+		
+		adr_list.append(np.uint8(cur_adr))
+		last_adr_lst.remove(cur_adr)
+
+		while len(last_adr_lst) != 0:
+			cur_hw_adr = np.uint8(ADR_MASK & cur_adr)
+			if cur_type == MCP23017.IO_type_enum.e_DI:
+				cur_hw_adr = ADR_MASK & (~ np.uint8(cur_hw_adr))
+
+			next_adr = 0
+			if cur_hw_adr == 0:
+				next_hw_adr = np.uint8(1)
+			elif cur_hw_adr == 4:
+				next_hw_adr	= np.uint8(0)
+			else:
+				next_hw_adr = np.uint8(ADR_MASK & (cur_hw_adr << 1 ))
+
+			if next_adr == 0:
+				next_adr = ADR_HEAD | next_hw_adr
+
+			if next_adr in last_adr_lst:
+				last_adr_lst.remove(next_adr)
+				adr_list.append(next_adr)
+				cur_adr = next_adr
+			else:
+				# lets try DI module
+				next_hw_adr = ADR_MASK & (~ np.uint8(next_hw_adr) )
+				next_adr = ADR_HEAD | next_hw_adr
+
+				if next_adr in last_adr_lst:
+					last_adr_lst.remove(next_adr)
+					adr_list.append(next_adr)
+					cur_adr = next_adr				
+				else:
+					return adr_list
+			
+			# Dx -> Dy
+			if cur_adr in DO_ADR_RANGE:
+				cur_type = MCP23017.IO_type_enum.e_DO
+			elif next_adr in DI_ADR_RANGE:
+				cur_type = MCP23017.IO_type_enum.e_DI
+			else:
+				logging.error(f'Wrong I2C addresses: {map(hex, next_adr)}')
+				return 0
+				
+		return adr_list
+
+
 	def get_next_mod_adr(self):
+
 		adr_lst = self.i2c.get_current_adr_list()
 
-		self_hw_adr = np.uint8(ADR_MASK & self.address)
-		if self.type == self.IO_type_enum.e_DI:
-			self_hw_adr = ADR_MASK & (~ np.uint8(self_hw_adr))
+		ord_lst = MCP23017.get_ord_adr_list( adr_lst )
 
-		if self_hw_adr == 0:
-			next_hw_adr = 1
-		else:
-			next_hw_adr = np.uint8(ADR_MASK & (self_hw_adr << 1 ))
+		self_pos = ord_lst.index( self.address)
+		
+		next_pos = self_pos + 1
 
-		next_adr = ADR_HEAD | next_hw_adr
+		return ord_lst[next_pos] if next_pos != len(ord_lst) else 0
 
-		if next_adr in adr_lst:
-			return next_adr
-		else:
-			# lets try DI module
-			next_hw_adr = ADR_MASK & (~ np.uint8(next_hw_adr) )
-			next_adr = ADR_HEAD | next_hw_adr
 
-			if next_adr in adr_lst:
-				return next_adr
-			else:
-				return 0
+if __name__ == "__main__":
+		
+        wbus = I2C(smbus.SMBus(1))
+        # looking for DO
+        devs_adr = wbus.scan()
+        logging.info(f'Side I2C addresses were found: {list(map(hex, devs_adr))}')
+
+        test_lst = MCP23017.get_ord_adr_list( wbus.get_current_adr_list() )
+
+        logging.info(f'Side modules ordered by address: {list(map(hex, test_lst))}')
+        logging.info(f'Stop')
