@@ -242,64 +242,73 @@ class MCP23017:
 		return 1 << (gpio % 8)
 	
 	@staticmethod
-	def get_ord_adr_list(last_adr_lst: list) -> list:
+	def get_ord_adr_list(adr_lst: list, reverse=False) -> list:
 		
-		adr_list = []
-
-		if DO_LEAD_ADR in last_adr_lst:
-			cur_adr = DO_LEAD_ADR
-			cur_type = MCP23017.IO_type_enum.e_DO
-		elif DI_LEAD_ADR in last_adr_lst:
-			cur_adr = DI_LEAD_ADR
-			cur_type = MCP23017.IO_type_enum.e_DI			
+		if set(DO_ADR_RANGE).issubset(adr_lst):
+			cur_adr = DO_LEAD_ADR if not reverse else DI_LEAD_ADR
+			cur_type = MCP23017.IO_type_enum.e_DO if not reverse else MCP23017.IO_type_enum.e_DI
+			adr_range = DO_ADR_RANGE if not reverse else DI_ADR_RANGE
 		else:
-			return adr_list
-		
-		adr_list.append(np.uint8(cur_adr))
-		last_adr_lst.remove(cur_adr)
+			cur_adr = DI_LEAD_ADR if not reverse else DO_LEAD_ADR
+			cur_type = MCP23017.IO_type_enum.e_DI if not reverse else MCP23017.IO_type_enum.e_DO
+			adr_range = DI_ADR_RANGE if not reverse else DO_ADR_RANGE
+	
+		cur_adr_lst = [x for x in adr_range if x in adr_lst] 
+		last_adr_lst = [x for x in adr_lst if x not in cur_adr_lst]
 
-		while len(last_adr_lst) != 0:
-			cur_hw_adr = np.uint8(ADR_MASK & cur_adr)
-			if cur_type == MCP23017.IO_type_enum.e_DI:
-				cur_hw_adr = ADR_MASK & (~ np.uint8(cur_hw_adr))
+		ord_adr_list = []
+		ord_adr_list.append(np.uint8(cur_adr))
+		cur_adr_lst.remove(cur_adr)
 
-			next_adr = 0
-			if cur_hw_adr == 0:
-				next_hw_adr = np.uint8(1)
-			elif cur_hw_adr == 4:
-				next_hw_adr	= np.uint8(0)
-			else:
-				next_hw_adr = np.uint8(ADR_MASK & (cur_hw_adr << 1 ))
+		while len(cur_adr_lst) != 0:
+			while len(cur_adr_lst) != 0:
+				cur_hw_adr = np.uint8(ADR_MASK & cur_adr)
+				if cur_type == MCP23017.IO_type_enum.e_DI:
+					cur_hw_adr = ADR_MASK & (~ np.uint8(cur_hw_adr))
 
-			if next_adr == 0:
-				next_adr = ADR_HEAD | next_hw_adr
-
-			if next_adr in last_adr_lst:
-				last_adr_lst.remove(next_adr)
-				adr_list.append(next_adr)
-				cur_adr = next_adr
-			else:
-				# lets try DI module
-				next_hw_adr = ADR_MASK & (~ np.uint8(next_hw_adr) )
-				next_adr = ADR_HEAD | next_hw_adr
-
-				if next_adr in last_adr_lst:
-					last_adr_lst.remove(next_adr)
-					adr_list.append(next_adr)
-					cur_adr = next_adr				
+				next_adr = 0
+				if cur_hw_adr == 0:
+					next_hw_adr = np.uint8(1)
+				elif cur_hw_adr == 4:
+					next_hw_adr	= np.uint8(0)
 				else:
-					return adr_list
-			
-			# Dx -> Dy
-			if cur_adr in DO_ADR_RANGE:
-				cur_type = MCP23017.IO_type_enum.e_DO
-			elif next_adr in DI_ADR_RANGE:
-				cur_type = MCP23017.IO_type_enum.e_DI
-			else:
-				logging.error(f'Wrong I2C addresses: {map(hex, next_adr)}')
-				return 0
+					next_hw_adr = np.uint8(ADR_MASK & (cur_hw_adr << 1 ))
+
+				if next_adr == 0:
+					next_adr = ADR_HEAD | next_hw_adr
+
+				if next_adr in cur_adr_lst:
+					cur_adr_lst.remove(next_adr)
+					ord_adr_list.append(next_adr)
+					cur_adr = next_adr
+				else:
+					# lets try DI module
+					next_hw_adr = ADR_MASK & (~ np.uint8(next_hw_adr) )
+					next_adr = ADR_HEAD | next_hw_adr
+
+					if next_adr in cur_adr_lst:
+						cur_adr_lst.remove(next_adr)
+						ord_adr_list.append(next_adr)
+						cur_adr = next_adr				
+					else:
+						break
 				
-		return adr_list
+				if cur_adr in DO_ADR_RANGE:
+					cur_type = MCP23017.IO_type_enum.e_DO
+				elif cur_adr in DI_ADR_RANGE:
+					cur_type = MCP23017.IO_type_enum.e_DI
+				else:
+					logging.error(f'Wrong I2C addresses: {map(hex, next_adr)}')
+					return 0
+
+			if len(cur_adr_lst) != 0:
+				return MCP23017.get_ord_adr_list(adr_lst, True)
+
+			cur_adr_lst = last_adr_lst.copy()
+			last_adr_lst = [x for x in last_adr_lst if x not in cur_adr_lst]
+					
+
+		return ord_adr_list
 
 
 	def get_next_mod_adr(self):
