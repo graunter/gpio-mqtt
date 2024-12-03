@@ -248,10 +248,22 @@ class MCP23017:
 			cur_adr = DO_LEAD_ADR if not reverse else DI_LEAD_ADR
 			cur_type = MCP23017.IO_type_enum.e_DO if not reverse else MCP23017.IO_type_enum.e_DI
 			adr_range = DO_ADR_RANGE if not reverse else DI_ADR_RANGE
-		else:
+		elif set(DI_ADR_RANGE).issubset(adr_lst):
 			cur_adr = DI_LEAD_ADR if not reverse else DO_LEAD_ADR
 			cur_type = MCP23017.IO_type_enum.e_DI if not reverse else MCP23017.IO_type_enum.e_DO
 			adr_range = DI_ADR_RANGE if not reverse else DO_ADR_RANGE
+		elif DO_LEAD_ADR in adr_lst:
+			cur_adr = DO_LEAD_ADR
+			cur_type = MCP23017.IO_type_enum.e_DO
+			adr_range = DO_ADR_RANGE
+		elif DI_LEAD_ADR in adr_lst:
+			cur_adr = DI_LEAD_ADR
+			cur_type = MCP23017.IO_type_enum.e_DI
+			adr_range = DI_ADR_RANGE		
+		else:
+			logging.error(f'can`t find start in bus numeration: {map(hex, adr_lst)}')
+			return
+		
 	
 		cur_adr_lst = [x for x in adr_range if x in adr_lst] 
 		last_adr_lst = [x for x in adr_lst if x not in cur_adr_lst]
@@ -260,7 +272,7 @@ class MCP23017:
 		ord_adr_list.append(np.uint8(cur_adr))
 		cur_adr_lst.remove(cur_adr)
 
-		while len(cur_adr_lst) != 0:
+		while len(last_adr_lst) != 0 or len(cur_adr_lst) != 0:
 			while len(cur_adr_lst) != 0:
 				cur_hw_adr = np.uint8(ADR_MASK & cur_adr)
 				if cur_type == MCP23017.IO_type_enum.e_DI:

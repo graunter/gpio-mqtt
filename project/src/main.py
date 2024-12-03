@@ -12,6 +12,7 @@ from wb_side_io import DO_LEAD_ADR, DI_LEAD_ADR
 from wb_side_io import DO_ADR_RANGE, DI_ADR_RANGE
 from i2c import I2C
 import smbus ## pip install smbus-cffi
+from side_dev import *
 
 
 verbose = False
@@ -27,6 +28,7 @@ class CTopinator:
         self.pull_thrd = None
         self.cfg = Cfg
         self.pins = Cfg.get_components()
+        self.block_lst = []
         logging.debug('Total ' + str(len(self.pins)) + ' was taken')
 
     def signal_handler(self, signal, frame):
@@ -54,8 +56,27 @@ class CTopinator:
         logging.info(f'Side I2C addresses were found: {list(map(hex, devs_adr))}')
 
         if devs_adr and (len(devs_adr)!= 0):
-            test_lst = MCP23017.get_ord_adr_list(wbus.get_current_adr_list())
-        logging.info(f'Side modules ordered by address: {list(map(hex, test_lst))}')
+            block_adr_lst = MCP23017.get_ord_adr_list(wbus.get_current_adr_list())
+        logging.info(f'Side modules ordered by address: {list(map(hex, block_adr_lst))}')
+        
+        ext_lst = Cfg.get_side_ext_blocks()
+
+        if len(ext_lst) != len(block_adr_lst):
+            logging.error(f'Config file doesn`t match to bus scan!')
+            return
+
+        block_cnt = 0
+        for one_block in ext_lst:
+            one_block.set_location( block_adr_lst[block_cnt], block_cnt+1)
+            self.block_lst.append(one_block)
+            block_cnt =+ 1
+            
+
+        # for test: write 1-delay-0 to output
+
+        # init ti output 
+     
+        
         logging.info(f'Stop')
         
 
@@ -80,12 +101,17 @@ class CTopinator:
             for OneComp in CompLst:
                 OneComp.on_connect( client )
 
+        for one_block in self.block_lst:
+            one_block.link_to_brocker(client)
+
         if( Cfg.pool_period_ms > 0 ):
             self.pause_fl = False
             if not self.pull_thrd:
                 self.pull_thrd = Thread(target=self.on_pool)
                 self.pull_thrd.daemon = True
                 self.pull_thrd.start()
+
+
 
     def on_disconnect(self):
         logging.debug('Disconected from client') 

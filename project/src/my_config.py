@@ -13,6 +13,7 @@ from collections import namedtuple
 from typing import List, Dict
 
 from common import MySingletone
+from block_factory import *
 
 
 class MyConfig(metaclass=MySingletone):
@@ -21,6 +22,7 @@ class MyConfig(metaclass=MySingletone):
         
 
         self.pins = defaultdict(list[CPin])
+        self.side_blocks = [] 
 
         self.host = "localhost"
         self.port = 1883
@@ -77,6 +79,7 @@ class MyConfig(metaclass=MySingletone):
         self.extract_connection(CfgData)
         self.extract_misc_conf(CfgData)        
         self.extract_components(CfgData)
+        self.extrct_i2c_mods(CfgData)
 
 
     def extract_misc_conf(self, CfgData: list):
@@ -158,6 +161,16 @@ class MyConfig(metaclass=MySingletone):
                 self.pins.setdefault( pin.topic_wr, [] )   
                 self.pins[pin.topic_wr].append(pin)
 
+    def extrct_i2c_mods(self, CfgData: list):
+        if CfgData and CfgData["ext_i2c"] is not None:
+            for item in CfgData.get("ext_i2c", []):
+                tmp_lst = []
+                tmp_lst.append(item)
+                the_block = CLibirator.GetByConfig(tmp_lst)
+                self.side_blocks.append(the_block)
+
+    def get_side_ext_blocks(self) -> List[CSideDev]:
+        return self.side_blocks
 
     def get_components(self) -> Dict[str, List[CPin]]:   
         logging.debug('Total ' + str(len(self.pins)) + ' was passed')
