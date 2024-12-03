@@ -108,7 +108,7 @@ class MCP23017:
 
 	def __init__(self, address, i2c: I2C, io_type: IO_type_enum):
 		self.i2c = i2c
-		self.address = np.uint8(address)
+		self.address = address
 		self.type = io_type
 
 	def set_all_output(self):

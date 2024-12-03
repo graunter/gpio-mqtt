@@ -15,6 +15,7 @@ import smbus ## pip install smbus-cffi
 from side_dev import *
 
 
+
 verbose = False
 
 def debug(msg):
@@ -67,9 +68,10 @@ class CTopinator:
 
         block_cnt = 0
         for one_block in ext_lst:
-            one_block.set_location( block_adr_lst[block_cnt], block_cnt+1)
+            one_block.set_location( wbus, block_adr_lst[block_cnt].item(), block_cnt+1 )
+            one_block.hw_init()
             self.block_lst.append(one_block)
-            block_cnt =+ 1
+            block_cnt += 1
             
 
         # for test: write 1-delay-0 to output
@@ -85,24 +87,23 @@ class CTopinator:
         #ordered_dev.append(MCP23017(last_mod_adr, wbus, last_mod_type))
 
 
-     
 
-    def on_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, userdata, connect_flags, reason_code, properties):
         # Подписка при подключении означает, что если было потеряно соединение
         # и произошло переподключение - то подписка будет обновлена
 
-        if rc != 0:
-            logging.debug(f"Failed to connect: {rc}. loop_forever() will retry connection")
+        if reason_code != 0:
+            logging.debug(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
             return
 
-        logging.debug("Connected with result code "+str(rc))
+        logging.debug("Connected with result code "+str(reason_code))
 
         for i, (key, CompLst) in enumerate(self.pins.items()):
             for OneComp in CompLst:
                 OneComp.on_connect( client )
 
         for one_block in self.block_lst:
-            one_block.link_to_brocker(client)
+            one_block.link_to_broker(client)
 
         if( Cfg.pool_period_ms > 0 ):
             self.pause_fl = False
@@ -110,7 +111,6 @@ class CTopinator:
                 self.pull_thrd = Thread(target=self.on_pool)
                 self.pull_thrd.daemon = True
                 self.pull_thrd.start()
-
 
 
     def on_disconnect(self):
@@ -178,11 +178,13 @@ if __name__ == "__main__":
 
     topinator.on_start()
 
-    client = mqtt.Client()
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = topinator.on_connect
     client.on_message = topinator.on_message
     client.on_disconnect = lambda client, userdata, rc: topinator.on_disconnect() 
     client.on_socket_close = lambda client, userdata, rc: topinator.on_disconnect() 
+
+
 
     # For test purposes
     #if args.verbose: 

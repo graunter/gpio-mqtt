@@ -24,10 +24,10 @@ class CLibirator:
 
         if Name.startswith("do"):
             bit_num = re.compile(r'(\d+)$').search(Name).group(1)
-            component = CDoNum(bit_num)
+            component = CDoNum( int(bit_num) )
         elif Name.startswith("di"):
             bit_num = re.compile(r'(\d+)$').search(Name).group(1)
-            component = CDiNum(bit_num)            
+            component = CDiNum( int(bit_num) )            
         else:
             raise ClassNotFoundError
 
