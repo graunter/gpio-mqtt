@@ -11,12 +11,15 @@ COMMON_TOPIC = "App/Topinator/SideDev"
 
 class CSideDev:
 
-    def __init__(self, Adr=0, Order=0):
+    def __init__(self, Cfg: list=[], GlobalCfg: list=[], Adr=0, Order=0):
         self.address = Adr
         self.ord = Order
         self.name = "side-device"
         self.desc = "General bus device"
         self.broker_client = None
+
+        self.glob_cfg = GlobalCfg
+        self.cfg = Cfg
 
     def link_to_broker(self, client: mqtt.Client, common_prefix=None):
 
@@ -43,12 +46,13 @@ class CSideDev:
 
 class CDoNum(CSideDev):
 
-    def __init__(self, ChNum, Adr=0, Order=0):
-        super().__init__(Adr, Order)
+    def __init__(self, ChNum, Cfg: list=[], GlobalCfg: list=[], Adr=0, Order=0):
+        super().__init__(Cfg, GlobalCfg, Adr, Order)
         self.ChNum = ChNum
         self.name = f'do-general-{ChNum}'
         self.desc = "DO with configured bit depth"
         self.state = [LOW]*ChNum
+
 
     def hw_init(self):
          
@@ -119,8 +123,8 @@ class CDoNum(CSideDev):
 
 class CDiNum(CSideDev):
 
-    def __init__(self, ChNum, Adr=0, Order=0):
-        super().__init__(Adr, Order)
+    def __init__(self, ChNum, Cfg: list=[], GlobalCfg: list=[], Adr=0, Order=0):
+        super().__init__(Cfg, GlobalCfg, Adr, Order)
         self.ch_num = ChNum
         self.name = f'di-general-{ChNum}'
         self.desc = "DI with configured bit depth"

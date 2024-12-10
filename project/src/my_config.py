@@ -35,6 +35,14 @@ class MyConfig(metaclass=MySingletone):
 
         self.NoNameCnt=0
 
+        self.blocks_cfg = defaultdict(dict)
+
+        self.blocks_cfg["common_path"] = ""
+        self.blocks_cfg["repetition_time_sec"] = 0
+        self.blocks_cfg["reset_to_def_topic"] = ""
+     
+
+
         logging.debug("Load of configuration" )
         
         if CfgFile:
@@ -162,12 +170,18 @@ class MyConfig(metaclass=MySingletone):
                 self.pins[pin.topic_wr].append(pin)
 
     def extrct_i2c_mods(self, CfgData: list):
-        if CfgData and CfgData["ext_i2c"] is not None:
-            for item in CfgData.get("ext_i2c", []):
-                tmp_lst = []
-                tmp_lst.append(item)
-                the_block = CLibirator.GetByConfig(tmp_lst)
-                self.side_blocks.append(the_block)
+        if CfgData and CfgData["ext_i2c"] is None:
+            return
+        
+        item = CfgData.get("ext_i2c", [])
+
+        self.blocks_cfg["common_path"] = item.get("common_path", self.blocks_cfg["common_path"])
+        self.blocks_cfg["repetition_time_sec"] = item.get("repetition_time_sec", self.blocks_cfg["repetition_time_sec"])
+        self.blocks_cfg["reset_to_def_topic"] = item.get("reset_to_def_topic", self.blocks_cfg["reset_to_def_topic"])
+
+        for one_blk_cfg in item.get("modules", []):
+            the_block = CLibirator.GetByConfig(one_blk_cfg, self.blocks_cfg)
+            self.side_blocks.append(the_block)
 
     def get_side_ext_blocks(self) -> List[CSideDev]:
         return self.side_blocks
@@ -180,4 +194,4 @@ class MyConfig(metaclass=MySingletone):
 
 
 if __name__ == "__main__":
-        Cfg = MyConfig()
+        Cfg = MyConfig("config.yaml")

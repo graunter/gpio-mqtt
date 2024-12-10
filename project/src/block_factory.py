@@ -15,19 +15,19 @@ class ClassNotFoundError(ValueError):
 class CLibirator:
 
     @staticmethod
-    def GetByConfig(Cfg: list) -> object:
+    def GetByConfig(Cfg: list, GlobalCfg: list) -> object:
         
-        if Cfg is not None:
-            Name = Cfg[0]
+        if Cfg and (my_name := Cfg["type"]) is not None:
+            blk_name = my_name
         else:
             raise ClassNotFoundError
 
-        if Name.startswith("do"):
-            bit_num = re.compile(r'(\d+)$').search(Name).group(1)
-            component = CDoNum( int(bit_num) )
-        elif Name.startswith("di"):
-            bit_num = re.compile(r'(\d+)$').search(Name).group(1)
-            component = CDiNum( int(bit_num) )            
+        if blk_name.startswith("do"):
+            bit_num = re.compile(r'(\d+)$').search(blk_name).group(1)
+            component = CDoNum( int(bit_num), Cfg, GlobalCfg )
+        elif blk_name.startswith("di"):
+            bit_num = re.compile(r'(\d+)$').search(blk_name).group(1)
+            component = CDiNum( int(bit_num), Cfg, GlobalCfg )            
         else:
             raise ClassNotFoundError
 
