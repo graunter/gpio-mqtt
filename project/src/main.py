@@ -25,8 +25,9 @@ def debug(msg):
 class CTopinator:
 
     def __init__(self, Cfg: MyConfig):
-        self.pause_fl = True
-        self.pull_thrd = None
+        self.pause_pins_fl = True
+        self.pull_pins_thrd = None
+        self.pull_blocks_thrd = None
         self.cfg = Cfg
         self.pins = Cfg.get_components()
         self.block_lst = []
@@ -74,19 +75,6 @@ class CTopinator:
             block_cnt += 1
             
 
-        # for test: write 1-delay-0 to output
-
-        # init ti output 
-     
-        
-        logging.info(f'Stop')
-        
-
-        ordered_dev = []
-        
-        #ordered_dev.append(MCP23017(last_mod_adr, wbus, last_mod_type))
-
-
 
     def on_connect(self, client, userdata, connect_flags, reason_code, properties):
         # Подписка при подключении означает, что если было потеряно соединение
@@ -106,30 +94,43 @@ class CTopinator:
             one_block.link_to_broker(client)
 
         if( Cfg.pool_period_ms > 0 ):
-            self.pause_fl = False
-            if not self.pull_thrd:
-                self.pull_thrd = Thread(target=self.on_pool)
-                self.pull_thrd.daemon = True
-                self.pull_thrd.start()
+            self.pause_pins_fl = False
+            if not self.pull_pins_thrd:
+                self.pull_pins_thrd = Thread(target=self.on_pin_pool)
+                self.pull_pins_thrd.daemon = True
+                self.pull_pins_thrd.start()
+
+        self.pause_blocks_fl = False
+        if not self.pull_blocks_thrd:
+            self.pull_blocks_thrd = Thread(target=self.on_blocks_pool)
+            self.pull_blocks_thrd.daemon = True
+            self.pull_blocks_thrd.start()    
 
 
     def on_disconnect(self):
         logging.debug('Disconected from client') 
-        self.pause_fl = True
+        self.pause_pins_fl = True
 
         for i, (key, CompLst) in enumerate(self.pins.items()):
             for OneComp in CompLst:
                 OneComp.on_disconnect()
 
-    def on_pool(self):
+    def on_pin_pool(self):
         while True:
             time.sleep(Cfg.pool_period_ms/1000)
-            if not self.pause_fl:
+            if not self.pause_pins_fl:
                 for i, (key, CompLst) in enumerate(self.pins.items()):
                     for OneComp in CompLst:
                         # iterate by not initialized elements only
                         if OneComp.pool_period_ms == 0: OneComp.on_update()
-                    
+
+    def on_blocks_pool(self):
+        while True:
+            time.sleep(1)   #TODO: may be could be faster
+            if not self.pause_blocks_fl:
+                for one_block in self.block_lst:
+                    one_block.upd_state()
+                  
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
 
