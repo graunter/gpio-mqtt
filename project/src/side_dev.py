@@ -17,20 +17,38 @@ class CSideDev:
         self.name = "side-device"
         self.desc = "General bus device"
         self.broker_client = None
+        self.common_prefix = ""     # cached value
 
         self.glob_cfg = GlobalCfg
         self.cfg = Cfg
+        self.pin_names = {}
+        self.set_topics = {}
+        self.clr_topics = {}
+        self.re_names = {}
 
-    def link_to_broker(self, client: mqtt.Client, common_prefix=None):
+    def link_to_broker(self, client: mqtt.Client):
 
-        if not common_prefix:
-            common_prefix = f'{COMMON_TOPIC}/{self.ord}/'
+        if not self.glob_cfg.get("common_path"):
+            self.glob_cfg["common_path"] = "App/Topinator"
+
+        if not self.cfg.get("control_path"):
+            self.cfg["control_path"] = str(self.ord)
+
+        self.common_prefix = f'{self.glob_cfg["common_path"]}/{self.cfg["control_path"]}'
+
+        for one_pin in self.cfg.get("pins", []):
+            if not (pin_num := one_pin["num"]):
+                logging.error(f'pin configuration for {self.cfg["cfg_pos_cnt"]} is not correct - scipped') 
+                break
+            self.pin_names[pin_num] = one_pin.get("name", str(pin_num))
+            self.set_topics[pin_num] = one_pin.get("set_path", "set")
+            self.clr_topics[pin_num] = one_pin.get("clr_path", "clr")
 
         #TODO: all messages should be posted - may be group all to one packet
         #TODO: verify the response
-        msg_info = client.publish( f'{common_prefix}Address', str(self.address))
-        client.publish( f'{common_prefix}Name', str(self.name))
-        client.publish( f'{common_prefix}Description', str(self.desc))
+        msg_info = client.publish( f'{self.common_prefix}/Address', str(self.address))
+        client.publish( f'{self.common_prefix}/Name', str(self.name))
+        client.publish( f'{self.common_prefix}/Description', str(self.desc))
 
     def set_location(self, i2c, Adr, Order):
         self.address = Adr
@@ -67,26 +85,39 @@ class CDoNum(CSideDev):
 
         self.broker_client = client
 
-        common_prefix = f'{COMMON_TOPIC}/{self.ord}/'
-        super().link_to_broker(client, common_prefix)
+        super().link_to_broker(client)
 
-        client.publish( f'{common_prefix}State', f'{self.state}' )
+        client.publish( f'{self.common_prefix}/State', f'{self.state}' )
 
         pin_cnt = 1
         for one_pin in self.state:
-            client.publish( f'{common_prefix}State/{str(pin_cnt)}', f'{one_pin}' )
 
-            set_topic = f'{common_prefix}State/{str(pin_cnt)}/Set'
+            if pin_cnt not in self.pin_names.keys():
+                self.pin_names[pin_cnt] = str(pin_cnt)
+
+            pin_topic = self.pin_names[pin_cnt]
+            client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{one_pin}' )
+
+            if pin_cnt not in self.set_topics.keys():
+                self.set_topics[pin_cnt] = "set"
+
+            if pin_cnt not in self.clr_topics.keys():
+                self.clr_topics[pin_cnt] = "clr"
+
+            set_topic = f'{self.common_prefix}/State/{pin_topic}/{self.set_topics[pin_cnt]}'
             client.message_callback_add( f'{set_topic}', self.on_set_msg)
             client.publish( f'{set_topic}', "" )
             client.subscribe( f'{set_topic}', 0)
 
-            clr_topic = f'{common_prefix}State/{str(pin_cnt)}/Clr'
+            clr_topic = f'{self.common_prefix}/State/{pin_topic}/{self.clr_topics[pin_cnt]}'
             client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
             client.publish( f'{clr_topic}', "" )
             client.subscribe( f'{clr_topic}', 0)
 
             pin_cnt += 1
+
+        self.re_names = dict((v,k) for k,v in self.pin_names.items())
+
 
 
     def on_set_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
@@ -94,30 +125,40 @@ class CDoNum(CSideDev):
         if not msg.payload.decode("utf-8"):
             return
         
-        pin_num = int(msg.topic.split("/")[-2])
+        in_pin_name = msg.topic.split("/")[-2]
+
+        if in_pin_name in self.re_names.keys():
+            pin_num = self.re_names[in_pin_name]
+        else:
+            logging.error(f'pin name=={in_pin_name} for set op is wrong - scipped') 
+            return
 
         self.hw.digital_write(ALL_GPIO[pin_num-1], HIGH)
 
-        common_prefix = f'{COMMON_TOPIC}/{self.ord}/'
-        client.publish( f'{common_prefix}State/{str(pin_num)}', "HIGH" )
+        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "HIGH" )
 
-        set_topic = f'{common_prefix}State/{str(pin_num)}/Set'
-        client.publish( f'{set_topic}', None )
+        set_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.set_topics[pin_num]}'
+        client.publish( set_topic, None )
 
     def on_clr_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
 
         if not msg.payload.decode("utf-8"):
             return
 
-        pin_num = int(msg.topic.split("/")[-2])
+        in_pin_name = int(msg.topic.split("/")[-2])
+
+        if in_pin_name in self.re_names.keys():
+            pin_num = self.re_names[in_pin_name]
+        else:
+            logging.error(f'pin name=={in_pin_name} for clear op is wrong - scipped') 
+            return
 
         self.hw.digital_write(ALL_GPIO[pin_num-1], LOW)
 
-        common_prefix = f'{COMMON_TOPIC}/{self.ord}/'
-        client.publish( f'{common_prefix}State/{str(pin_num)}', "LOW" )
+        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "LOW" )
 
-        clr_topic = f'{common_prefix}State/{str(pin_num)}/Clr'
-        client.publish( f'{clr_topic}', None )
+        clr_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.clr_topics[pin_num]}'
+        client.publish( clr_topic, None )
 
 
 
@@ -136,17 +177,39 @@ class CDiNum(CSideDev):
         # TODO: stoped here  
         # self.hw.write()
         self.hw.set_all_input()
-        self.state = self.hw.digital_read_all()
+        hw_state = self.hw.digital_read_all()
+
+        next_state = []
+        bit_cnt = self.ch_num
+        for one_byte in hw_state:
+            for i in range(8):
+                if not bit_cnt: break
+                this_bit = one_byte >> i & 1
+                next_state.append(this_bit)
+                bit_cnt -= 1
+
+        self.state = next_state
 
     def link_to_broker(self, client: mqtt.Client):
 
         self.broker_client = client
-        
-        common_prefix = f'{COMMON_TOPIC}/{self.ord}/'
 
-        super().link_to_broker(client, common_prefix)
+        super().link_to_broker(client)
 
-        client.publish( f'{common_prefix}State', f'{self.state}' )
+        client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+
+        pin_cnt = 1
+        for one_pin in self.state:
+
+            if pin_cnt not in self.pin_names.keys():
+                self.pin_names[pin_cnt] = str(pin_cnt)
+
+            pin_topic = self.pin_names[pin_cnt]
+            client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{one_pin}' )
+
+            pin_cnt += 1
+
+        self.re_names = dict((v,k) for k,v in self.pin_names.items())
 
     def upd_state(self):
         state = self.hw.digital_read_all()
@@ -156,10 +219,12 @@ class CDiNum(CSideDev):
         for one_byte in state:
             for i in range(8):
                 if not bit_cnt: break
-                next_state.append(one_byte >> i & 1)
+                this_bit = one_byte >> i & 1
+                next_state.append(this_bit)
                 bit_cnt -= 1
+
+                self.broker_client.publish( f'{self.common_prefix}/State/{self.pin_names[bit_cnt+1]}', f'{this_bit}' )
 
         self.state = next_state
 
-        common_prefix = f'{COMMON_TOPIC}/{self.ord}/'
-        self.broker_client.publish( f'{common_prefix}State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )

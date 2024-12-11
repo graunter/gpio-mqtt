@@ -179,9 +179,12 @@ class MyConfig(metaclass=MySingletone):
         self.blocks_cfg["repetition_time_sec"] = item.get("repetition_time_sec", self.blocks_cfg["repetition_time_sec"])
         self.blocks_cfg["reset_to_def_topic"] = item.get("reset_to_def_topic", self.blocks_cfg["reset_to_def_topic"])
 
+        cfg_pos_cnt = 0
         for one_blk_cfg in item.get("modules", []):
+            one_blk_cfg["cfg_pos_cnt"] = cfg_pos_cnt
             the_block = CLibirator.GetByConfig(one_blk_cfg, self.blocks_cfg)
             self.side_blocks.append(the_block)
+            cfg_pos_cnt += 1
 
     def get_side_ext_blocks(self) -> List[CSideDev]:
         return self.side_blocks
