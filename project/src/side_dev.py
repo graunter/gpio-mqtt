@@ -1,3 +1,5 @@
+import datetime
+from threading import Thread
 import time
 import numpy as np
 from wb_side_io import MCP23017
@@ -18,6 +20,8 @@ class CSideDev:
         self.desc = "General bus device"
         self.broker_client = None
         self.common_prefix = ""     # cached value
+        self.pause_rep_fl = True
+        self.pull_theblock_thrd = None
 
         self.glob_cfg = GlobalCfg
         self.cfg = Cfg
@@ -25,6 +29,7 @@ class CSideDev:
         self.set_topics = {}
         self.clr_topics = {}
         self.re_names = {}
+        self.read_time = 0
 
     def link_to_broker(self, client: mqtt.Client):
 
@@ -50,6 +55,21 @@ class CSideDev:
         client.publish( f'{self.common_prefix}/Name', str(self.name))
         client.publish( f'{self.common_prefix}/Description', str(self.desc))
 
+        
+        if self.cfg.get("repetition_time_sec", 0) > 0:
+            self.pause_rep_fl = False
+            if not self.pull_theblock_thrd:
+                self.pull_theblock_thrd = Thread(target=self.on_theblock_pool)
+                self.pull_theblock_thrd.daemon = True
+                self.pull_theblock_thrd.start() 
+
+    def on_theblock_pool(self):
+        while True:
+            time.sleep( self.cfg.get("repetition_time_sec") )
+            if not self.pause_rep_fl:
+                self.send_state()
+
+
     def set_location(self, i2c, Adr, Order):
         self.address = Adr
         self.ord = Order        
@@ -59,6 +79,9 @@ class CSideDev:
         pass
 
     def upd_state(self):
+        return False
+
+    def send_state(self):
         pass
 
 
@@ -66,7 +89,7 @@ class CDoNum(CSideDev):
 
     def __init__(self, ChNum, Cfg: list=[], GlobalCfg: list=[], Adr=0, Order=0):
         super().__init__(Cfg, GlobalCfg, Adr, Order)
-        self.ChNum = ChNum
+        self.ch_num = ChNum
         self.name = f'do-general-{ChNum}'
         self.desc = "DO with configured bit depth"
         self.state = [LOW]*ChNum
@@ -76,6 +99,7 @@ class CDoNum(CSideDev):
          
         self.hw = MCP23017(self.address, self.i2c, MCP23017.IO_type_enum.e_DO)
         self.hw.set_all_output()
+        self.read_time = datetime.datetime.now()
 
         for one_pin in ALL_GPIO:
             self.hw.digital_write(one_pin, LOW)
@@ -87,37 +111,67 @@ class CDoNum(CSideDev):
 
         super().link_to_broker(client)
 
-        client.publish( f'{self.common_prefix}/State', f'{self.state}' )
-
         pin_cnt = 1
         for one_pin in self.state:
-
             if pin_cnt not in self.pin_names.keys():
-                self.pin_names[pin_cnt] = str(pin_cnt)
-
-            pin_topic = self.pin_names[pin_cnt]
-            client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{one_pin}' )
+                self.pin_names[pin_cnt] = str(pin_cnt)    
 
             if pin_cnt not in self.set_topics.keys():
                 self.set_topics[pin_cnt] = "set"
 
             if pin_cnt not in self.clr_topics.keys():
-                self.clr_topics[pin_cnt] = "clr"
+                self.clr_topics[pin_cnt] = "clr"     
+
+            pin_topic = self.pin_names[pin_cnt]
 
             set_topic = f'{self.common_prefix}/State/{pin_topic}/{self.set_topics[pin_cnt]}'
-            client.message_callback_add( f'{set_topic}', self.on_set_msg)
-            client.publish( f'{set_topic}', "" )
-            client.subscribe( f'{set_topic}', 0)
+            self.broker_client.message_callback_add( set_topic, self.on_set_msg)
+            self.broker_client.publish( set_topic, "" )
+            self.broker_client.subscribe( set_topic, 0)
 
             clr_topic = f'{self.common_prefix}/State/{pin_topic}/{self.clr_topics[pin_cnt]}'
-            client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
-            client.publish( f'{clr_topic}', "" )
-            client.subscribe( f'{clr_topic}', 0)
+            self.broker_client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
+            self.broker_client.publish( f'{clr_topic}', "" )
+            self.broker_client.subscribe( f'{clr_topic}', 0)
 
             pin_cnt += 1
 
         self.re_names = dict((v,k) for k,v in self.pin_names.items())
 
+        self.send_state()
+
+    def upd_state(self):
+        
+        state = self.hw.digital_read_all()
+        self.read_time = datetime.datetime.now()
+
+        next_state = []
+        bit_cnt = 1
+        for one_byte in state:
+            for i in range(8):
+                if bit_cnt > self.ch_num: break
+                this_bit = one_byte >> i & 1
+                next_state.append(this_bit)
+
+                #self.broker_client.publish( f'{self.common_prefix}/State/{self.pin_names[bit_cnt]}', f'{this_bit}' )
+                bit_cnt += 1
+
+        ret = (set(self.state) != set(next_state))
+        self.state = next_state
+        return ret
+
+    def send_state(self):
+
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
+
+        pin_cnt = 1
+        for one_pin in self.state:
+
+            pin_topic = self.pin_names[pin_cnt]
+            self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{one_pin}' )
+
+            pin_cnt += 1
 
 
     def on_set_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
@@ -145,7 +199,7 @@ class CDoNum(CSideDev):
         if not msg.payload.decode("utf-8"):
             return
 
-        in_pin_name = int(msg.topic.split("/")[-2])
+        in_pin_name = msg.topic.split("/")[-2]
 
         if in_pin_name in self.re_names.keys():
             pin_num = self.re_names[in_pin_name]
@@ -178,17 +232,7 @@ class CDiNum(CSideDev):
         # self.hw.write()
         self.hw.set_all_input()
         hw_state = self.hw.digital_read_all()
-
-        next_state = []
-        bit_cnt = self.ch_num
-        for one_byte in hw_state:
-            for i in range(8):
-                if not bit_cnt: break
-                this_bit = one_byte >> i & 1
-                next_state.append(this_bit)
-                bit_cnt -= 1
-
-        self.state = next_state
+        self.read_time = datetime.datetime.now()
 
     def link_to_broker(self, client: mqtt.Client):
 
@@ -196,35 +240,46 @@ class CDiNum(CSideDev):
 
         super().link_to_broker(client)
 
-        client.publish( f'{self.common_prefix}/State', f'{self.state}' )
-
         pin_cnt = 1
         for one_pin in self.state:
 
             if pin_cnt not in self.pin_names.keys():
                 self.pin_names[pin_cnt] = str(pin_cnt)
 
-            pin_topic = self.pin_names[pin_cnt]
-            client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{one_pin}' )
+            #pin_topic = self.pin_names[pin_cnt]
+            #client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{one_pin}' )
 
             pin_cnt += 1
 
         self.re_names = dict((v,k) for k,v in self.pin_names.items())
 
+        self.send_state()
+
     def upd_state(self):
         state = self.hw.digital_read_all()
+        self.read_time = datetime.datetime.now()
 
         next_state = []
-        bit_cnt = self.ch_num
+        bit_cnt = 1
         for one_byte in state:
             for i in range(8):
-                if not bit_cnt: break
+                if bit_cnt > self.ch_num: break
                 this_bit = one_byte >> i & 1
                 next_state.append(this_bit)
-                bit_cnt -= 1
 
-                self.broker_client.publish( f'{self.common_prefix}/State/{self.pin_names[bit_cnt+1]}', f'{this_bit}' )
+                #self.broker_client.publish( f'{self.common_prefix}/State/{self.pin_names[bit_cnt]}', f'{this_bit}' )
+                bit_cnt += 1
 
+        ret = (set(self.state) != set(next_state))
         self.state = next_state
+        return ret
+
+
+    def send_state(self):
 
         self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
+
+        for position, this_bit in enumerate(self.state):
+            self.broker_client.publish( f'{self.common_prefix}/State/{self.pin_names[position+1]}', f'{this_bit}' )
+

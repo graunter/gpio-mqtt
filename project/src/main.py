@@ -13,6 +13,7 @@ from wb_side_io import DO_ADR_RANGE, DI_ADR_RANGE
 from i2c import I2C
 import smbus ## pip install smbus-cffi
 from side_dev import *
+from timeit import default_timer as timer
 
 
 
@@ -26,12 +27,14 @@ class CTopinator:
 
     def __init__(self, Cfg: MyConfig):
         self.pause_pins_fl = True
+        self.pause_blocks_fl = True
         self.pull_pins_thrd = None
         self.pull_blocks_thrd = None
         self.cfg = Cfg
         self.pins = Cfg.get_components()
         self.block_lst = []
         logging.debug('Total ' + str(len(self.pins)) + ' was taken')
+        self.status_timer_begin = 0
 
     def signal_handler(self, signal, frame):
         print(' You pressed Ctrl+C!')
@@ -100,11 +103,13 @@ class CTopinator:
                 self.pull_pins_thrd.daemon = True
                 self.pull_pins_thrd.start()
 
-        self.pause_blocks_fl = False
-        if not self.pull_blocks_thrd:
-            self.pull_blocks_thrd = Thread(target=self.on_blocks_pool)
-            self.pull_blocks_thrd.daemon = True
-            self.pull_blocks_thrd.start()    
+        self.status_timer_begin = timer()
+        if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
+            self.pause_blocks_fl = False
+            if not self.pull_blocks_thrd:
+                self.pull_blocks_thrd = Thread(target=self.on_blocks_pool)
+                self.pull_blocks_thrd.daemon = True
+                self.pull_blocks_thrd.start()    
 
 
     def on_disconnect(self):
@@ -129,8 +134,14 @@ class CTopinator:
             time.sleep(1)   #TODO: may be could be faster
             if not self.pause_blocks_fl:
                 for one_block in self.block_lst:
-                    one_block.upd_state()
-                  
+
+                    if True == one_block.upd_state():
+                        one_block.send_state()
+
+                    if ( (the_time:=timer()) -self.status_timer_begin) > self.cfg.blocks_cfg["repetition_time_sec"]:
+                        one_block.send_state()
+                        self.status_timer_begin = the_time
+
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
 
@@ -171,7 +182,6 @@ if __name__ == "__main__":
     if args.verbose: 
         topinator.verbose = True
 
-
     signal.signal(signal.SIGINT, topinator.signal_handler)
     signal.signal(signal.SIGTERM, topinator.signal_handler)
 
@@ -184,8 +194,6 @@ if __name__ == "__main__":
     client.on_message = topinator.on_message
     client.on_disconnect = lambda client, userdata, rc: topinator.on_disconnect() 
     client.on_socket_close = lambda client, userdata, rc: topinator.on_disconnect() 
-
-
 
     # For test purposes
     #if args.verbose: 
