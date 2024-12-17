@@ -8,8 +8,8 @@ from wb_side_io import DO_ADR_RANGE, DI_ADR_RANGE
 import paho.mqtt.client as mqtt
 import logging
 from wb_side_io import *
+from constants import *
 
-COMMON_TOPIC = "App/Topinator/SideDev"
 
 class CSideDev:
 
@@ -34,7 +34,7 @@ class CSideDev:
     def link_to_broker(self, client: mqtt.Client):
 
         if not self.glob_cfg.get("common_path"):
-            self.glob_cfg["common_path"] = "App/Topinator"
+            self.glob_cfg["common_path"] = DEFAULT_COMMON_PATH_TOPIC
 
         if not self.cfg.get("control_path"):
             self.cfg["control_path"] = str(self.ord)

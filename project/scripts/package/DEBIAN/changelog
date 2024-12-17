@@ -3,7 +3,8 @@ gpio-mqtt (0.0.5) no-stable; urgency=medium
 
 
 [Sergey Zhukov]
-* 0.0.6 - Fix for no broker on start
+* 0.0.7 - WB side modules support
+  0.0.6 - Fix for no broker on start
   0.0.5 - Fix for "Null" message on broker
   0.0.4 - New line at the end of value was striped
   0.0.3 - Config for release was changed

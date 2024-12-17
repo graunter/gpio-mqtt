@@ -16,7 +16,6 @@ from side_dev import *
 from timeit import default_timer as timer
 
 
-
 verbose = False
 
 def debug(msg):
@@ -75,6 +74,7 @@ class CTopinator:
             one_block.set_location( wbus, block_adr_lst[block_cnt].item(), block_cnt+1 )
             one_block.hw_init()
             self.block_lst.append(one_block)
+            logging.info(f'Modul wad added for monitoring: {one_block.name}, {one_block.ord}, {one_block.address}')
             block_cnt += 1
             
 

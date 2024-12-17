@@ -1,6 +1,6 @@
 
 Package: gpio-mqtt
-Version: 0.0.6
+Version: 0.0.7
 Section: embedded
 Priority: optional
 Depends: python3 (>= 3.9)

@@ -37,12 +37,10 @@ class MyConfig(metaclass=MySingletone):
 
         self.blocks_cfg = defaultdict(dict)
 
-        self.blocks_cfg["common_path"] = ""
-        self.blocks_cfg["repetition_time_sec"] = 0
+        self.blocks_cfg["common_path"] = DEFAULT_COMMON_PATH_TOPIC
+        self.blocks_cfg["repetition_time_sec"] = DEFAULT_REPETITION_TIME
         self.blocks_cfg["reset_to_def_topic"] = ""
      
-
-
         logging.debug("Load of configuration" )
         
         if CfgFile:

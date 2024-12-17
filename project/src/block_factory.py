@@ -4,12 +4,10 @@ import re
 from side_dev import *
 
 
-
 # fake component factory
 
 class ClassNotFoundError(ValueError):
     pass
-
 
 
 class CLibirator:

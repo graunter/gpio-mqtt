@@ -9,27 +9,27 @@ cfg:
   changes_only: True
   status_period_sec: 10
 
-convert_tables:
-  - &bin_filter 
-    - name: on_value
-      broker: 1
-      file: 1
-    - name: off_value
-      broker: 0
-      file: 0
-    - broker: "*"
-      file: null
-    - broker: null
-      file: "*"      
-  - &bool_to_bin 
-    - broker: "True"
-      file: 1
-    - broker: "False"
-      file: 0
-    - broker: "*"
-      file: null
-    - broker: null
-      file: "*"
+# convert_tables:
+#   - &bin_filter 
+#     - name: on_value
+#       broker: 1
+#       file: 1
+#     - name: off_value
+#       broker: 0
+#       file: 0
+#     - broker: "*"
+#       file: null
+#     - broker: null
+#       file: "*"      
+#   - &bool_to_bin 
+#     - broker: "True"
+#       file: 1
+#     - broker: "False"
+#       file: 0
+#     - broker: "*"
+#       file: null
+#     - broker: null
+#       file: "*"
 
 ext_i2c:
     # Секция описывает расположение боковых модулей ввода/вывода
@@ -40,7 +40,7 @@ ext_i2c:
     # опционально.
     # если не установлено - то используется пустое значение - обращение начинается от корня: "/"
 
-    repetition_time_sec: 500
+    repetition_time_sec: 600
     # период принудительного опроса и отправки состояния в брокер
     # опционально.
     # если не установлено или 0 - то отправка только по изменению
@@ -75,7 +75,7 @@ ext_i2c:
       - type: do12
         # тип модуля из поддерживаемых вариантов
 
-        repetition_time_sec: 100
+        repetition_time_sec: 300
         # период принудительного опроса и отправки состояния в брокер
         # индивидуально для данного конкретного модуля
         # опционально.
@@ -99,6 +99,10 @@ ext_i2c:
         # "None" - ничего не предпринимать
         # опционально.
         # если не установлено - то используется "None"
+
+        # TODO
+        set_topic: set
+        clr_topic: clr
 
         pins:
         # настройки для контактов модулей индивидуально
