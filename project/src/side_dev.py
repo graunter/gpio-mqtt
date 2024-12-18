@@ -93,16 +93,18 @@ class CDoNum(CSideDev):
         self.name = f'do-general-{ChNum}'
         self.desc = "DO with configured bit depth"
         self.state = [LOW]*ChNum
+        self.hw_state = 0
 
 
     def hw_init(self):
          
         self.hw = MCP23017(self.address, self.i2c, MCP23017.IO_type_enum.e_DO)
+        self.hw.check_chip_type()
         self.hw.set_all_output()
         self.read_time = datetime.datetime.now()
 
-        for one_pin in ALL_GPIO:
-            self.hw.digital_write(one_pin, LOW)
+        # TODO: state should be restored here
+        self.hw.set_all_output_to_zero()
            
 
     def link_to_broker(self, client: mqtt.Client):
@@ -228,6 +230,7 @@ class CDiNum(CSideDev):
     def hw_init(self):
          
         self.hw = MCP23017(self.address, self.i2c, MCP23017.IO_type_enum.e_DI)
+        self.hw.check_chip_type()
         # TODO: stoped here  
         # self.hw.write()
         self.hw.set_all_input()

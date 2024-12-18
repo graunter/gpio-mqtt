@@ -5,6 +5,7 @@ import numpy as np
 #apt install cmake
 import smbus ## pip install smbus-cffi
 import logging
+import collections
 
 
 IODIRA   = 0x00  # Pin direction register
@@ -32,6 +33,23 @@ OLATA    = 0x14
 OLATB    = 0x15
 ALL_OFFSET = [IODIRA, IODIRB, IPOLA, IPOLB, GPINTENA, GPINTENB, DEFVALA, DEFVALB, INTCONA, INTCONB, IOCONA, IOCONB, GPPUA, GPPUB, GPIOA, GPIOB, OLATA, OLATB]
 
+
+IODIR    = 0x00  # Pin direction register
+IPOL     = 0x01
+GPINTEN  = 0x02
+DEFVAL   = 0x03
+INTCON   = 0x04
+IOCON    = 0x05
+GPPU     = 0x06
+
+INTF     = 0x07
+INTCAP   = 0x08
+GPIO     = 0x09
+OLAT     = 0x0A
+
+ALL_OFFSET_LO = [IODIR, IPOL, GPINTEN, DEFVAL, INTCON, IOCON, GPPU, GPIO, OLAT]
+
+
 BANK_BIT    = 7
 MIRROR_BIT  = 6
 SEQOP_BIT   = 5
@@ -39,6 +57,8 @@ DISSLW_BIT  = 4
 HAEN_BIT    = 3
 ODR_BIT     = 2
 INTPOL_BIT  = 1
+
+DEF_CTRL_BITS = 0
 
 GPA0 = 0
 GPA1 = 1
@@ -57,6 +77,16 @@ GPB5 = 13
 GPB6 = 14
 GPB7 = 15
 ALL_GPIO = [GPA0, GPA1, GPA2, GPA3, GPA4, GPA5, GPA6, GPA7, GPB0, GPB1, GPB2, GPB3, GPB4, GPB5, GPB6, GPB7]
+
+GP0 = 0
+GP1 = 1
+GP2 = 2
+GP3 = 3
+GP4 = 4
+GP5 = 5
+GP6 = 6
+GP7 = 7
+ALL_GPIO_LO = [GP0, GP1, GP2, GP3, GP4, GP5, GP6, GP7]
 
 HIGH = 0xFF
 LOW = 0x00
@@ -97,8 +127,24 @@ class MCP23017:
 	GPPUA    | 0C | PU7     | PU6    | PU5    | PU4    | PU3    | PU2    | PU1    | PU0    | 0000 0000
 	GPPUB    | 0D | PU7     | PU6    | PU5    | PU4    | PU3    | PU2    | PU1    | PU0    | 0000 0000
 
+	"""
 
 	"""
+	MCP23008 class to handle ICs register setup
+
+	RegName  |ADR | bit7    | bit6   | bit5   | bit4   | bit3   | bit2   | bit1   | bit0   | POR/RST
+	--------------------------------------------------------------------------------------------------
+	IODIR    | 00 | IO7     | IO6    | IO5    | IO4    | IO3    | IO2    | IO1    | IO0    | 1111 1111
+	IPOL     | 01 | IP7     | IP6    | IP5    | IP4    | IP3    | IP2    | IP1    | IP0    | 0000 0000
+	GPINTEN  | 02 | GPINT7  | GPINT6 | GPINT5 | GPINT4 | GPINT3 | GPINT2 | GPINT1 | GPINT0 | 0000 0000
+	DEFVAL   | 03 | DEF7    | DEF6   | DEF5   | DEF4   | DEF3   | DEF2   | DEF1   | DEF0   | 0000 0000
+	INTCON   | 04 | IOC7    | IOC6   | IOC5   | IOC4   | IOC3   | IOC2   | IOC1   | IOC0   | 0000 0000
+	IOCON    | 05 | -       | -      | SEQOP  | DISSLW | -      | ODR    | INTPOL | -      | 0000 0000
+	GPPU     | 06 | PU7     | PU6    | PU5    | PU4    | PU3    | PU2    | PU1    | PU0    | 0000 0000
+
+	"""
+
+
 
 	@enum.unique
 	class IO_type_enum(enum.Enum):
@@ -106,29 +152,74 @@ class MCP23017:
 		e_DO = 1
 		e_unknown = 3
 
+	chip = collections.namedtuple('chip', ['x8', 'x16' ])
+
+	@enum.unique
+	class chip_type_enum(enum.Enum):
+		e_unknown = 0
+		e_x8 = 1
+		e_x16 = 2
+
 	def __init__(self, address, i2c: I2C, io_type: IO_type_enum):
 		self.i2c = i2c
 		self.address = address
 		self.type = io_type
+		self.chip = self.chip_type_enum.e_unknown
+		self.state = []
+		
+
+	def check_chip_type(self):
+		old_ioconb = self.i2c.read_from(self.address, IOCONB)
+		test_val = old_ioconb | self.bitmask(MIRROR_BIT)
+		self.i2c.write_to(self.address, IOCONB, test_val)
+		new_ioconb = self.i2c.read_from(self.address, IOCONB)
+
+		if test_val == new_ioconb:
+			self.chip = self.chip_type_enum.e_x16
+			# reset to default mode
+			self.i2c.write_to(self.address, IOCONB, DEF_CTRL_BITS)
+		else:
+			self.chip = self.chip_type_enum.e_x8
+
+		# TODO should be mode set instead of full reset
+		self.i2c.write_to(self.address, IOCON, DEF_CTRL_BITS)
+
+	def set_all_output_to_zero(self):
+		""" sets all GPIOs to LOW"""
+		if self.chip == self.chip_type_enum.e_x16:
+			self.i2c.write_to(self.address, OLATA, 0x00)
+			self.i2c.write_to(self.address, OLATB, 0x00)
+			self.state = [0, 0]
+		elif self.chip == self.chip_type_enum.e_x8:
+			self.i2c.write_to(self.address, OLAT, 0x00)
+			self.state = [0]
+		else:
+			# TODO: must be init
+			logging.error(f'chip must be init: adr={self.address}')			
+
 
 	def set_all_output(self):
 		""" sets all GPIOs as OUTPUT"""
-		self.i2c.write_to(self.address, IODIRA, 0x00)
-		self.i2c.write_to(self.address, IODIRB, 0x00)
+		if self.chip == self.chip_type_enum.e_x16:
+			self.i2c.write_to(self.address, IODIRA, 0x00)
+			self.i2c.write_to(self.address, IODIRB, 0x00)
+		elif self.chip == self.chip_type_enum.e_x8:
+			self.i2c.write_to(self.address, IODIR, 0x00)
+		else:
+			# TODO: must be init
+			logging.error(f'chip must be init: adr={self.address}')			
+
 
 	def set_all_input(self):
 		""" sets all GPIOs as INPUT"""
-		self.i2c.write_to(self.address, IODIRA, 0xFF)
-		self.i2c.write_to(self.address, IODIRB, 0xFF)
-
-	def pin_mode(self, gpio, mode):
-		"""
-		Sets the given GPIO to the given mode INPUT or OUTPUT
-		:param gpio: the GPIO to set the mode to
-		:param mode: one of INPUT or OUTPUT
-		"""
-		pair = self.get_offset_gpio_tuple([IODIRA, IODIRB], gpio)
-		self.set_bit_enabled(pair[0], pair[1], True if mode is INPUT else False)
+		if self.chip == self.chip_type_enum.e_x16:
+			self.i2c.write_to(self.address, IODIRA, 0xFF)
+			self.i2c.write_to(self.address, IODIRB, 0xFF)
+		elif self.chip == self.chip_type_enum.e_x8:
+			self.i2c.write_to(self.address, IODIR, 0xFF)
+		else:
+			# TODO: must be init
+			logging.error(f'chip must be init: adr={self.address}')					
 
 	def digital_write(self, gpio, direction):
 		"""
@@ -136,28 +227,32 @@ class MCP23017:
 		:param gpio: the GPIO to set the direction to
 		:param direction: one of HIGH or LOW
 		"""
-		pair = self.get_offset_gpio_tuple([OLATA, OLATB], gpio)
-		self.set_bit_enabled(pair[0], pair[1], True if direction is HIGH else False)
-
-	def digital_read(self, gpio):
-		"""
-		Reads the current direction of the given GPIO
-		:param gpio: the GPIO to read from
-		:return:
-		"""
-		pair = self.get_offset_gpio_tuple([GPIOA, GPIOB], gpio)
-		bits = self.i2c.read_from(self.address, pair[0])
-		return HIGH if (bits & (1 << pair[1])) > 0 else LOW
+		# TODO: the state should be taken from an internal store - not from bus
+		if self.chip == self.chip_type_enum.e_x16:
+			pair = self.get_offset_gpio_tuple([OLATA, OLATB], gpio)
+			self.set_bit_enabled(pair[0], pair[1], True if direction is HIGH else False)
+		elif self.chip == self.chip_type_enum.e_x8:
+			self.set_bit_enabled(OLAT, gpio, True if direction is HIGH else False)
+		else:
+			# TODO: must be init
+			logging.error(f'chip must be init: adr={self.address}')	
 
 	def digital_read_all(self):
 		"""
-		Reads the current direction of the given GPIO
-		:param gpio: the GPIO to read from
+		Reads the current direction of GPIO
 		:return:
 		"""
-		return [self.i2c.read_from(self.address, GPIOA),
-		        self.i2c.read_from(self.address, GPIOB)]
+		if self.chip == self.chip_type_enum.e_x16:
+			self.state = [self.i2c.read_from(self.address, GPIOA), self.i2c.read_from(self.address, GPIOB)]
+			return self.state
+		elif self.chip == self.chip_type_enum.e_x8:
+			self.state = [self.i2c.read_from(self.address, GPIO)]
+			return self.state
+		else:
+			# TODO: must be init
+			logging.error(f'chip must be init: adr={self.address}')		
 
+	#TODO
 	def set_interrupt(self, gpio, enabled):
 		"""
 		Enables or disables the interrupt of a given GPIO
