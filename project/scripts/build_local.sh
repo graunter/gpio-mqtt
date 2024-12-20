@@ -9,7 +9,9 @@
 # TODO: #:, pyyaml (>= 6.0.1), paho-mqtt (>= 2.1.0)
 
 ARCHITECTURE=$(dpkg --print-architecture)
+BUILD_ENV_NAME="benv"
 
+#TODO: must be transform to abs path
 OUTPUT_PATH="../../build/$ARCHITECTURE"
 echo "OUTPUT_PATH=$OUTPUT_PATH"
 mkdir -p $OUTPUT_PATH
@@ -34,11 +36,21 @@ EXE_NAME="$PROJECT_NAME"
 mkdir -p $BUILD_PATH
 cp -r ../src/* $BUILD_PATH
 
+echo "Create virtual enviroment.."
+#cd ../../
+#pyenv virtualenv 3.9.2 $BUILD_ENV_NAME
+#pyenv activate $BUILD_ENV_NAME
+#pip3 install -r requirements.txt 
+#TODO: must be transform to abs path
+pip3 install -r ../../requirements.txt 
+
+
 #compile source
 cmd1="--add-data config.yaml:."
 cmd2="--distpath $DIST_PATH"
 cmd3="--specpath $BUILD_PATH"
-pyinstaller --onefile --clean -y -n $EXE_NAME $cmd1 $cmd2 $cmd3  $BUILD_PATH/main.py
+cmd4="--hidden-import=_cffi_backend"
+pyinstaller --onefile --clean -y -n $EXE_NAME $cmd1 $cmd2 $cmd3 $cmd4 $BUILD_PATH/main.py
 
 echo "coping result to local path..."
 EXE_OUTPUT_PATH="$PACKAGE_PATH/opt/$PROJECT_NAME"
@@ -59,6 +71,8 @@ if [ -f $OUT_FULL_FILE_NAME ]; then
 else
    echo -e "${RED}Error${NC}: There is some problem with your build!"
 fi
+
+#pyenv deactivate
 
 rm -rf build
 
