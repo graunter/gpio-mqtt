@@ -14,6 +14,7 @@ from i2c import I2C
 import smbus ## pip install smbus-cffi
 from side_dev import *
 from timeit import default_timer as timer
+from my_log import *
 
 
 verbose = False
@@ -87,7 +88,10 @@ class CTopinator:
             logging.debug(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
             return
 
-        logging.debug("Connected with result code "+str(reason_code))
+        LinkLoggerToBroker(client)
+
+        #logging.debug("Connected with result code "+str(reason_code))
+        log_dbg("Connected with result code "+str(reason_code))
 
         for i, (key, CompLst) in enumerate(self.pins.items()):
             for OneComp in CompLst:
@@ -113,6 +117,8 @@ class CTopinator:
 
 
     def on_disconnect(self):
+
+        LinkLoggerToBroker(None)
         logging.debug('Disconected from client') 
         self.pause_pins_fl = True
 
@@ -204,7 +210,8 @@ if __name__ == "__main__":
     User = args.user if args.user is not None else Cfg.user
     Pasw = args.pasw if args.pasw is not None else Cfg.pasw
 
-    logging.debug("Try connection to " + str(Host) + " with port " + str(Port) + ': '+User+'+'+Pasw)
+    #logging.debug("Try connection to " + str(Host) + " with port " + str(Port) + ': '+User+'+'+Pasw)
+
 
     client.username_pw_set(User, Pasw)
  
