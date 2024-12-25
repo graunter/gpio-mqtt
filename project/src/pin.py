@@ -188,7 +188,7 @@ class CPin:
                         self.client.publish( self.topic_rd, PinValNew)
                     elif self.PinVal != PinValNew:
                         self.client.publish( self.topic_rd, PinValNew)
-                        logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(self.PinVal) + '"')
+                        logging.debug('Pin ' +str(self.name)+ ' value set to  "' + str(PinValNew) + '"')
 
                 self.PinVal = PinValNew
 

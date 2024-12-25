@@ -1,0 +1,76 @@
+  # the following data could be used for test purposes
+  # Wirenboard 7.4.4
+
+broker:
+  host: "localhost"
+  port: 1883
+  user: ""
+  password: ""
+
+cfg:
+  pool_period_ms: 1000
+  changes_only: True
+  status_period_sec: 10
+
+sysfs_pins:
+  - name: A1_DI
+    type: IN
+    pool_period_ms: 100
+    changes_only: True
+    topic: "test/dev/A1_DI"
+    file_value: "/sys/class/gpio/gpio231/value"
+    create_start_topic: True
+    init:
+      - file: "/sys/class/gpio/export"
+        text: "231"
+      - file: "/sys/class/gpio/gpio231/direction"
+        text: "in"
+
+  - name: A2_DI
+    type: IN
+    pool_period_ms: 100
+    changes_only: True
+    topic: "test/dev/A2_DI"
+    file_value: "/sys/class/gpio/gpio230/value"
+    create_start_topic: True
+    init:
+      - file: "/sys/class/gpio/export"
+        text: "230"
+      - file: "/sys/class/gpio/gpio230/direction"
+        text: "in"
+
+  - name: A3_DI
+    type: IN
+    pool_period_ms: 100
+    changes_only: True
+    topic: "test/dev/A3_DI"
+    file_value: "/sys/class/gpio/gpio227/value"
+    create_start_topic: True
+    init:
+      - file: "/sys/class/gpio/export"
+        text: "227"
+      - file: "/sys/class/gpio/gpio227/direction"
+        text: "in"
+
+  - name: A4_DI
+    type: IN
+    pool_period_ms: 100
+    changes_only: True
+    topic: "test/dev/A4_DI"
+    file_value: "/sys/class/gpio/gpio228/value"
+    create_start_topic: True
+    init:
+      - file: "/sys/class/gpio/export"
+        text: "228"
+      - file: "/sys/class/gpio/gpio228/direction"
+        text: "in"             
+
+ext_i2c:
+    common_path: devices
+
+    modules:
+      - type: do8
+      - type: do12
+      - type: di14
+        
+

@@ -104,12 +104,12 @@ class CTopinator:
                 self.pull_pins_thrd.start()
 
         self.status_timer_begin = timer()
-        if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
-            self.pause_blocks_fl = False
-            if not self.pull_blocks_thrd:
-                self.pull_blocks_thrd = Thread(target=self.on_blocks_pool)
-                self.pull_blocks_thrd.daemon = True
-                self.pull_blocks_thrd.start()    
+        #if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
+        self.pause_blocks_fl = False
+        if not self.pull_blocks_thrd:
+            self.pull_blocks_thrd = Thread(target=self.on_blocks_pool)
+            self.pull_blocks_thrd.daemon = True
+            self.pull_blocks_thrd.start()    
 
 
     def on_disconnect(self):
@@ -130,17 +130,23 @@ class CTopinator:
                         if OneComp.pool_period_ms == 0: OneComp.on_update()
 
     def on_blocks_pool(self):
+        #TODO: may be could be faster
+        re_time = self.cfg.blocks_cfg["repetition_time_sec"] if self.cfg.blocks_cfg["repetition_time_sec"]>0 else 1
+        
         while True:
-            time.sleep(1)   #TODO: may be could be faster
+            time.sleep(re_time)   
             if not self.pause_blocks_fl:
                 for one_block in self.block_lst:
 
-                    if True == one_block.upd_state():
+                    if is_upd := one_block.upd_state():
+                        one_block.send_state()
+                    elif False == self.cfg.changes_only:
                         one_block.send_state()
 
-                    if ( (the_time:=timer()) -self.status_timer_begin) > self.cfg.blocks_cfg["repetition_time_sec"]:
-                        one_block.send_state()
-                        self.status_timer_begin = the_time
+                    if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
+                        if ( (the_time:=timer()) -self.status_timer_begin) > self.cfg.blocks_cfg["repetition_time_sec"]:
+                            one_block.send_state()
+                            self.status_timer_begin = the_time
 
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):

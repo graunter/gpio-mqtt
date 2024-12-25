@@ -192,6 +192,9 @@ class CDoNum(CSideDev):
         self.hw.digital_write(ALL_GPIO[pin_num-1], HIGH)
 
         client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "HIGH" )
+        self.state[pin_num] = 1
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
         set_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.set_topics[pin_num]}'
         client.publish( set_topic, None )
@@ -212,6 +215,9 @@ class CDoNum(CSideDev):
         self.hw.digital_write(ALL_GPIO[pin_num-1], LOW)
 
         client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "LOW" )
+        self.state[pin_num] = 0
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
         clr_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.clr_topics[pin_num]}'
         client.publish( clr_topic, None )
