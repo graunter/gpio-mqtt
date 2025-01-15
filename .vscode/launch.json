@@ -9,10 +9,10 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal",
+            "console": "integratedTerminal"//,
             //"args": "${command:pickArgs}"
-            "args": "-v -c config.yaml",
-            "sudo": true
+            //"args": "-v -c config.yaml"//,
+            //"sudo": true
         }
     ]
 }
