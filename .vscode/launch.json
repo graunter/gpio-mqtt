@@ -11,7 +11,8 @@
             "program": "${file}",
             "console": "integratedTerminal",
             //"args": "${command:pickArgs}"
-            "args": "-v -c wirenboard_config.yaml",
+            "args": "-v -c config.yaml",
+            //"args": "-v -c wirenboard_config.yaml",            
             "sudo": true
         }
     ]

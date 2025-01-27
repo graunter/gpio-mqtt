@@ -96,10 +96,10 @@ class CTopinator:
         for one_block in self.block_lst:
             one_block.link_to_broker(client)
 
-        if( Cfg.pool_period_ms > 0 ):
+        if( Cfg.pull_period_ms > 0 ):
             self.pause_pins_fl = False
             if not self.pull_pins_thrd:
-                self.pull_pins_thrd = Thread(target=self.on_pin_pool)
+                self.pull_pins_thrd = Thread(target=self.on_pin_pull)
                 self.pull_pins_thrd.daemon = True
                 self.pull_pins_thrd.start()
 
@@ -107,7 +107,7 @@ class CTopinator:
         #if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
         self.pause_blocks_fl = False
         if not self.pull_blocks_thrd:
-            self.pull_blocks_thrd = Thread(target=self.on_blocks_pool)
+            self.pull_blocks_thrd = Thread(target=self.on_blocks_pull)
             self.pull_blocks_thrd.daemon = True
             self.pull_blocks_thrd.start()    
 
@@ -120,16 +120,16 @@ class CTopinator:
             for OneComp in CompLst:
                 OneComp.on_disconnect()
 
-    def on_pin_pool(self):
+    def on_pin_pull(self):
         while True:
-            time.sleep(Cfg.pool_period_ms/1000)
+            time.sleep(Cfg.pull_period_ms/1000)
             if not self.pause_pins_fl:
                 for i, (key, CompLst) in enumerate(self.pins.items()):
                     for OneComp in CompLst:
                         # iterate by not initialized elements only
-                        if OneComp.pool_period_ms == 0: OneComp.on_update()
+                        if OneComp.pull_period_ms == 0: OneComp.on_update()
 
-    def on_blocks_pool(self):
+    def on_blocks_pull(self):
         #TODO: may be could be faster
         re_time = self.cfg.blocks_cfg["repetition_time_sec"] if self.cfg.blocks_cfg["repetition_time_sec"]>0 else 1
         

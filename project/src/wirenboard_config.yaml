@@ -8,14 +8,14 @@ broker:
   password: ""
 
 cfg:
-  pool_period_ms: 1000
+  pull_period_ms: 1000
   changes_only: True
   status_period_sec: 10
 
 sysfs_pins:
   - name: A1_DI
     type: IN
-    pool_period_ms: 100
+    pull_period_ms: 100
     changes_only: True
     topic: "test/dev/A1_DI"
     file_value: "/sys/class/gpio/gpio231/value"
@@ -28,7 +28,7 @@ sysfs_pins:
 
   - name: A2_DI
     type: IN
-    pool_period_ms: 100
+    pull_period_ms: 100
     changes_only: True
     topic: "test/dev/A2_DI"
     file_value: "/sys/class/gpio/gpio230/value"
@@ -41,7 +41,7 @@ sysfs_pins:
 
   - name: A3_DI
     type: IN
-    pool_period_ms: 100
+    pull_period_ms: 100
     changes_only: True
     topic: "test/dev/A3_DI"
     file_value: "/sys/class/gpio/gpio227/value"
@@ -54,7 +54,7 @@ sysfs_pins:
 
   - name: A4_DI
     type: IN
-    pool_period_ms: 100
+    pull_period_ms: 100
     changes_only: True
     topic: "test/dev/A4_DI"
     file_value: "/sys/class/gpio/gpio228/value"

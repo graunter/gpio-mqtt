@@ -12,13 +12,12 @@ InitStep_t = namedtuple("InitStep_t", "OutFile Text")
 class CPin:
     def __init__(self):
         self.name = ""
-        self.pool_period_ms = 0
+        self.pull_period_ms = 0
         self.status_period_sec = 0
         self.status_timer_begin = 0
         self.changes_only = False
         self.topic_rd = ""
         self.topic_wr = ""
-        self.changes_only = False
         self.file_value = ""
         self.fd = None
         self.type = ""
@@ -106,9 +105,9 @@ class CPin:
     
         self.pause_fl = False
 
-        # an individual pooling thread for every pin
-        if( self.pool_period_ms > 0 and not self.pull_thrd ):
-            self.pull_thrd = Thread(target=self.self_pool)
+        # an individual pulling thread for every pin
+        if( self.pull_period_ms > 0 and not self.pull_thrd ):
+            self.pull_thrd = Thread(target=self.self_pull)
             self.pull_thrd.daemon = True
             self.pull_thrd.start()
 
@@ -117,9 +116,9 @@ class CPin:
             self.status_thrd.daemon = True
             self.status_thrd.start()            
 
-    def self_pool(self):
+    def self_pull(self):
         while True:
-            time.sleep(self.pool_period_ms/1000)
+            time.sleep(self.pull_period_ms/1000)
             if not self.pause_fl:
                 self.on_update()
 

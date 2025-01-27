@@ -29,7 +29,7 @@ class MyConfig(metaclass=MySingletone):
         self.pasw = ""
         self.user = ""
 
-        self.pool_period_ms = 1000
+        self.pull_period_ms = 1000
         self.status_period_sec = 0
         self.changes_only = False
 
@@ -85,7 +85,7 @@ class MyConfig(metaclass=MySingletone):
         self.extract_connection(CfgData)
         self.extract_misc_conf(CfgData)        
         self.extract_components(CfgData)
-        self.extrct_i2c_mods(CfgData)
+        self.extract_i2c_mods(CfgData)
 
 
     def extract_misc_conf(self, CfgData: list):
@@ -93,7 +93,8 @@ class MyConfig(metaclass=MySingletone):
         MiscCfg = CfgData.get("cfg", {})
 
         if MiscCfg is not None:
-            self.pool_period_ms = MiscCfg.get("pool_period_ms", self.pool_period_ms)
+            self.pull_period_ms = MiscCfg.get("pull_period_ms", self.pull_period_ms)
+            self.pull_period_ms = MiscCfg.get("pool_period_ms", self.pull_period_ms)
             self.changes_only = MiscCfg.get("changes_only", self.changes_only) 
             self.status_period_sec = MiscCfg.get("status_period_sec", self.status_period_sec) 
             
@@ -135,7 +136,8 @@ class MyConfig(metaclass=MySingletone):
                     pin.topic_wr = pin_topics
                     pin.topic_rd = pin_topics
 
-                pin.pool_period_ms = item.get("pool_period_ms", self.pool_period_ms)
+                pin.pull_period_ms = item.get("pull_period_ms", self.pull_period_ms)
+                pin.pull_period_ms = item.get("pool_period_ms", self.pull_period_ms)
 
                 pin.file_value = item.get("file_value")
                 # TODO: Check file not empty and exist after init
@@ -167,7 +169,7 @@ class MyConfig(metaclass=MySingletone):
                 self.pins.setdefault( pin.topic_wr, [] )   
                 self.pins[pin.topic_wr].append(pin)
 
-    def extrct_i2c_mods(self, CfgData: list):
+    def extract_i2c_mods(self, CfgData: list):
         if CfgData and CfgData["ext_i2c"] is None:
             return
         

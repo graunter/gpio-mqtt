@@ -168,7 +168,7 @@ class MCP23017:
 		self.state = []
 		
 
-	def check_chip_type(self):
+	def fix_protocol(self):
 		old_ioconb = self.i2c.read_from(self.address, IOCONB)
 		test_val = old_ioconb | self.bitmask(MIRROR_BIT)
 		self.i2c.write_to(self.address, IOCONB, test_val)
