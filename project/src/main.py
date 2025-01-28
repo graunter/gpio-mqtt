@@ -134,7 +134,7 @@ class CTopinator:
         re_time = self.cfg.blocks_cfg["repetition_time_sec"] if self.cfg.blocks_cfg["repetition_time_sec"]>0 else 1
         
         while True:
-            time.sleep(re_time)   
+            time.sleep(Cfg.pull_period_ms/1000)   
             if not self.pause_blocks_fl:
                 for one_block in self.block_lst:
 
@@ -144,7 +144,7 @@ class CTopinator:
                         one_block.send_state()
 
                     if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
-                        if ( (the_time:=timer()) -self.status_timer_begin) > self.cfg.blocks_cfg["repetition_time_sec"]:
+                        if ( (the_time:=timer()) -self.status_timer_begin) > re_time:
                             one_block.send_state()
                             self.status_timer_begin = the_time
 

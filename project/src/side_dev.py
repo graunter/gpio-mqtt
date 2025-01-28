@@ -100,10 +100,10 @@ class CDoNum(CSideDev):
         self.ch_num = ChNum
         self.name = f'do-general-{ChNum}'
         self.desc = "DO with configured bit depth"
-        self.state = dict.fromkeys(range(1, ChNum), False)
-        self.hw_state = 0
-        self.invert = dict.fromkeys(range(1, ChNum), False)
-        self.start_state = dict.fromkeys(range(1, ChNum), CDoNum.start_state_enum.e_None)
+        self.state = dict.fromkeys(range(1, ChNum+1), 0)
+        #self.hw_state = 0
+        self.invert = dict.fromkeys(range(1, ChNum+1), False)
+        self.start_state = dict.fromkeys(range(1, ChNum+1), CDoNum.start_state_enum.e_None)
 
 
     def hw_init(self):
@@ -122,24 +122,45 @@ class CDoNum(CSideDev):
                 break
 
             self.invert[pin_num] = one_pin.get("invert", False)
-            self.start_state[pin_num] = one_pin.get("start_state", CDoNum.start_state_enum.e_None)
+
+            pin_start_val = one_pin.get("start_state", "None")
+            pin_start_dict = { 
+                  "0": CDoNum.start_state_enum.e_Lo
+                , "1": CDoNum.start_state_enum.e_Hi
+                , "LastState": CDoNum.start_state_enum.e_Re
+                , "None": CDoNum.start_state_enum.e_None
+            }
+
+            self.start_state[pin_num] =  pin_start_dict[pin_start_val]
                       
         storage = StateHolder()
 
         for one_pin_num, one_pin_state in self.start_state.items():
 
-            if one_pin_state == CDoNum.start_state_enum.e_Lo:
-                this_real_bit = HIGH if self.invert[one_pin_num] else LOW
-                self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)    
+            value = self.state[one_pin_num]
+
+            if one_pin_state == CDoNum.start_state_enum.e_Lo:  
+                value = 0
             elif one_pin_state == CDoNum.start_state_enum.e_Hi:   
-                this_real_bit = LOW if self.invert[one_pin_num] else HIGH
-                self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)   
-            elif one_pin_state == CDoNum.start_state_enum.e_Re:           
-                self.PinVal = storage.load(f'{str(self.ord)}-{one_pin_num}')
+                value = 1 
+            elif one_pin_state == CDoNum.start_state_enum.e_Re:                 
+                try:
+                    value = int(storage.load(f'{str(self.ord)}-{one_pin_num}'))
+                except:
+                    value = 0
             elif one_pin_state == CDoNum.start_state_enum.e_None:  
                 pass
             else:
                 logging.error(f'{self.name} wrong value for state enum') 
+
+            self.state[one_pin_num] = value
+
+            if value == 0:
+                this_real_bit = HIGH if self.invert[one_pin_num] else LOW
+            else:
+                this_real_bit = LOW if self.invert[one_pin_num] else HIGH
+
+            self.hw.digital_write(ALL_GPIO[one_pin_num-1], this_real_bit)   
 
 
     def link_to_broker(self, client: mqtt.Client):
@@ -191,39 +212,46 @@ class CDoNum(CSideDev):
 
         self.send_state()
 
+
     def upd_state(self):
         
-        state = self.hw.digital_read_all()
-        self.read_time = datetime.datetime.now()
+        # state = self.hw.digital_read_all()
+        # self.read_time = datetime.datetime.now()
 
-        next_state = []
-        bit_cnt = 1
-        for one_byte in state:
-            for i in range(8):
-                if bit_cnt > self.ch_num: break
-                this_bit = one_byte >> i & 1
-                this_real_bit = (~this_bit & 1) if self.invert[bit_cnt-1] else this_bit
-                next_state.append(this_real_bit)
-                bit_cnt += 1
+        # next_state = []
+        # bit_cnt = 1
+        # for one_byte in state:
+        #     for i in range(8):
+        #         if bit_cnt > self.ch_num: break
+        #         this_bit = one_byte >> i & 1
+        #         this_real_bit = (~this_bit & 1) if self.invert[bit_cnt] else this_bit
+        #         next_state.append(this_real_bit)
+        #         bit_cnt += 1
 
-        ret = (set(self.state) != set(next_state))
-        self.state = next_state
+        # ret = (set(self.state) != set(next_state))
+        # self.state = next_state
+        ret = False
         return ret
 
     def send_state(self):
 
-        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
-        bit_cnt = 1
-        for this_bit in self.state:
+        # bit_cnt = 1
+        # for this_bit in self.state:
 
-            this_real_bit = (~this_bit & 1) if self.invert[bit_cnt] else this_bit
+        #     this_real_bit = (~this_bit & 1) if self.invert[bit_cnt] else this_bit
 
-            pin_topic = self.pin_names[bit_cnt]
-            self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_real_bit}' )
+        #     pin_topic = self.pin_names[bit_cnt]
+        #     self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_real_bit}' )
 
-            bit_cnt += 1
+        #     bit_cnt += 1
+
+        for position, this_bit in self.state.items():
+            pin_topic = self.pin_names[position]
+            self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_bit}' )
+
 
 
     def on_set_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
@@ -239,19 +267,19 @@ class CDoNum(CSideDev):
             logging.error(f'pin name=={in_pin_name} for set op is wrong - scipped') 
             return
 
-        this_real_bit = LOW if self.invert[pin_num-1] else HIGH
+        this_real_bit = LOW if self.invert[pin_num] else HIGH
         self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)
 
-        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "HIGH" )
+        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "1" )
         self.state[pin_num] = 1
-        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
         set_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.set_topics[pin_num]}'
         self.broker_client.publish( set_topic, None )
 
         storage = StateHolder()
-        storage.save(True, f'{str(self.ord)}-{pin_num}')
+        storage.save("1", f'{str(self.ord)}-{pin_num}')
 
 
     def on_clr_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
@@ -267,19 +295,19 @@ class CDoNum(CSideDev):
             logging.error(f'pin name=={in_pin_name} for clear op is wrong - scipped') 
             return
 
-        this_real_bit = HIGH if self.invert[pin_num-1] else LOW
+        this_real_bit = HIGH if self.invert[pin_num] else LOW
         self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)
 
-        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "LOW" )
+        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "0" )
         self.state[pin_num] = 0
-        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
         clr_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.clr_topics[pin_num]}'
         self.broker_client.publish( clr_topic, None )
 
         storage = StateHolder()
-        storage.save(False, f'{str(self.ord)}-{pin_num}')
+        storage.save("0", f'{str(self.ord)}-{pin_num}')
 
 
 class CDiNum(CSideDev):
@@ -289,7 +317,7 @@ class CDiNum(CSideDev):
         self.ch_num = ChNum
         self.name = f'di-general-{ChNum}'
         self.desc = "DI with configured bit depth"
-        self.state = dict.fromkeys(range(1, ChNum), LOW)
+        self.state = dict.fromkeys(range(1, ChNum), 0)
         self.invert = dict.fromkeys(range(1, ChNum), False)
 
     def hw_init(self):
@@ -321,19 +349,20 @@ class CDiNum(CSideDev):
 
         self.re_names = dict((v,k) for k,v in self.pin_names.items())
 
+        self.upd_state()
         self.send_state()
 
     def upd_state(self):
         state = self.hw.digital_read_all()
         self.read_time = datetime.datetime.now()
 
-        next_state = []
+        next_state = dict.fromkeys(range(1, self.ch_num), 0)
         bit_cnt = 1
         for one_byte in state:
             for i in range(8):
                 if bit_cnt > self.ch_num: break
                 this_bit = one_byte >> i & 1
-                next_state.append(this_bit)
+                next_state[bit_cnt] = this_bit
                 bit_cnt += 1
 
         ret = (set(self.state) != set(next_state))
@@ -343,9 +372,10 @@ class CDiNum(CSideDev):
 
     def send_state(self):
 
-        self.broker_client.publish( f'{self.common_prefix}/State', f'{self.state}' )
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
-
-        for position, this_bit in enumerate(self.state):
-            self.broker_client.publish( f'{self.common_prefix}/State/{self.pin_names[position+1]}', f'{this_bit}' )
+        
+        for position, this_bit in self.state.items():
+            pin_topic = self.pin_names[position]
+            self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_bit}' )
 
