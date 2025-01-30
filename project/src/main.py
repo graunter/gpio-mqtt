@@ -32,7 +32,7 @@ class CTopinator:
         self.cfg = Cfg
         self.pins = Cfg.get_components()
         self.block_lst = []
-        logging.debug('Total ' + str(len(self.pins)) + ' was taken')
+        logging.debug(f'Total {str(len(self.pins))} controller onboard pins were taken')
         self.status_timer_begin = 0
 
     def signal_handler(self, signal, frame):

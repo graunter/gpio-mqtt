@@ -36,6 +36,7 @@ class CSideDev:
 
     def link_to_broker(self, client: mqtt.Client):
 
+        # TODO: sintax optimization required
         if not self.glob_cfg.get("common_path"):
             self.glob_cfg["common_path"] = DEFAULT_COMMON_PATH_TOPIC
 
@@ -104,6 +105,32 @@ class CDoNum(CSideDev):
         #self.hw_state = 0
         self.invert = dict.fromkeys(range(1, ChNum+1), False)
         self.start_state = dict.fromkeys(range(1, ChNum+1), CDoNum.start_state_enum.e_None)
+        self.set_topics = dict.fromkeys(range(1, ChNum+1), "set")
+        self.clr_topics = dict.fromkeys(range(1, ChNum+1), "clr")
+        self.pin_names = dict( (item, str(item)) for item in range(1, ChNum+1) ) 
+        
+        for one_pin in self.cfg.get("pins", []):
+            if not (pin_num := one_pin["num"]):
+                logging.error(f'pin configuration for {self.name} is not correct - scipped') 
+                break
+
+            self.invert[pin_num] = one_pin.get("invert", self.invert[pin_num])
+            self.pin_names[pin_num] = one_pin.get("name", self.pin_names[pin_num])
+
+            pin_start_val = one_pin.get("start_state", "None")
+            pin_start_dict = { 
+                  "0": CDoNum.start_state_enum.e_Lo
+                , "1": CDoNum.start_state_enum.e_Hi
+                , "LastState": CDoNum.start_state_enum.e_Re
+                , "None": CDoNum.start_state_enum.e_None
+            }
+
+            self.start_state[pin_num] =  pin_start_dict[pin_start_val]
+                      
+            self.set_topics[pin_num] = one_pin.get("set_path", self.set_topics[pin_num])
+            self.clr_topics[pin_num] = one_pin.get("clr_path", self.clr_topics[pin_num])
+
+        self.re_names = dict((v,k) for k,v in self.pin_names.items())
 
 
     def hw_init(self):
@@ -116,25 +143,6 @@ class CDoNum(CSideDev):
         # TODO: state should be restored here
         #self.hw.set_all_output_to_zero()
 
-        for one_pin in self.cfg.get("pins", []):
-            if not (pin_num := one_pin["num"]):
-                logging.error(f'pin configuration for {self.name} is not correct - scipped') 
-                break
-
-            self.invert[pin_num] = one_pin.get("invert", False)
-
-            pin_start_val = one_pin.get("start_state", "None")
-            pin_start_dict = { 
-                  "0": CDoNum.start_state_enum.e_Lo
-                , "1": CDoNum.start_state_enum.e_Hi
-                , "LastState": CDoNum.start_state_enum.e_Re
-                , "None": CDoNum.start_state_enum.e_None
-            }
-
-            self.start_state[pin_num] =  pin_start_dict[pin_start_val]
-                      
-        storage = StateHolder()
-
         for one_pin_num, one_pin_state in self.start_state.items():
 
             value = self.state[one_pin_num]
@@ -145,6 +153,8 @@ class CDoNum(CSideDev):
                 value = 1 
             elif one_pin_state == CDoNum.start_state_enum.e_Re:                 
                 try:
+                    # TODO: must be cleared after hw reconfiguration
+                    storage = StateHolder()
                     value = int(storage.load(f'{str(self.ord)}-{one_pin_num}'))
                 except:
                     value = 0
@@ -169,52 +179,27 @@ class CDoNum(CSideDev):
 
         super().link_to_broker(client)
 
-        for one_pin in self.cfg.get("pins", []):
-            if not (pin_num := one_pin["num"]):
-                logging.error(f'pin configuration for {self.name} is not correct - scipped') 
-                break
-            self.set_topics[pin_num] = one_pin.get("set_path", "set")
-            self.clr_topics[pin_num] = one_pin.get("clr_path", "clr")
-            #self.invert[pin_num] = one_pin.get("invert", False)
-            #self.start_state[pin_num] = one_pin.get("start_state", CDoNum.start_state_enum.e_None)
-
-
-        pin_cnt = 1
-        for one_pin in self.state:
-            if pin_cnt not in self.pin_names.keys():
-                self.pin_names[pin_cnt] = str(pin_cnt)    
-
-            if pin_cnt not in self.set_topics.keys():
-                self.set_topics[pin_cnt] = "set"
-
-            if pin_cnt not in self.clr_topics.keys():
-                self.clr_topics[pin_cnt] = "clr"    
-
-            if pin_cnt not in self.start_state.keys():
-                self.start_state[pin_cnt] = "CDoNum.start_state_enum.e_None"  
-
-            pin_topic = self.pin_names[pin_cnt]
+        for pin_idx, _ in self.state.items():
+            pin_topic = self.pin_names[pin_idx]
 
             # TODO: all messages should be accumulated
-            set_topic = f'{self.common_prefix}/State/{pin_topic}/{self.set_topics[pin_cnt]}'
+            set_topic = f'{self.common_prefix}/State/{pin_topic}/{self.set_topics[pin_idx]}'
             self.broker_client.message_callback_add( set_topic, self.on_set_msg)
             self.broker_client.publish( set_topic, "" )
             self.broker_client.subscribe( set_topic, 0)
 
-            clr_topic = f'{self.common_prefix}/State/{pin_topic}/{self.clr_topics[pin_cnt]}'
+            clr_topic = f'{self.common_prefix}/State/{pin_topic}/{self.clr_topics[pin_idx]}'
             self.broker_client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
             self.broker_client.publish( f'{clr_topic}', "" )
             self.broker_client.subscribe( f'{clr_topic}', 0)
 
-            pin_cnt += 1
-
-        self.re_names = dict((v,k) for k,v in self.pin_names.items())
-
+        self.broker_client.publish( f'{self.common_prefix}/Invertion', f'{"".join(str(list(self.invert.values())))}' )
         self.send_state()
 
 
     def upd_state(self):
         
+        # TODO: is it required for DO?
         # state = self.hw.digital_read_all()
         # self.read_time = datetime.datetime.now()
 
@@ -238,20 +223,9 @@ class CDoNum(CSideDev):
         self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
-        # bit_cnt = 1
-        # for this_bit in self.state:
-
-        #     this_real_bit = (~this_bit & 1) if self.invert[bit_cnt] else this_bit
-
-        #     pin_topic = self.pin_names[bit_cnt]
-        #     self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_real_bit}' )
-
-        #     bit_cnt += 1
-
         for position, this_bit in self.state.items():
             pin_topic = self.pin_names[position]
             self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_bit}' )
-
 
 
     def on_set_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
@@ -317,8 +291,20 @@ class CDiNum(CSideDev):
         self.ch_num = ChNum
         self.name = f'di-general-{ChNum}'
         self.desc = "DI with configured bit depth"
-        self.state = dict.fromkeys(range(1, ChNum), 0)
-        self.invert = dict.fromkeys(range(1, ChNum), False)
+        self.state = dict.fromkeys(range(1, ChNum+1), 0)
+        self.invert = dict.fromkeys(range(1, ChNum+1), False)
+        self.pin_names = dict( (item, str(item)) for item in range(1, ChNum+1) ) 
+
+        for one_pin in self.cfg.get("pins", []):
+            if not (pin_num := one_pin["num"]):
+                logging.error(f'pin configuration for {self.name} is not correct - scipped') 
+                break
+
+            self.invert[pin_num] = one_pin.get("invert", self.invert[pin_num])
+            self.pin_names[pin_num] = one_pin.get("name", self.pin_names[pin_num])
+
+        self.re_names = dict((v,k) for k,v in self.pin_names.items())
+
 
     def hw_init(self):
          
@@ -333,21 +319,7 @@ class CDiNum(CSideDev):
 
         super().link_to_broker(client)
 
-        for one_pin in self.cfg.get("pins", []):
-            if not (pin_num := one_pin["num"]):
-                logging.error(f'pin configuration for {self.name} is not correct - scipped') 
-                break
-            self.invert[pin_num] = one_pin.get("invert", False)
-
-        pin_cnt = 1
-        for one_pin in self.state:
-
-            if pin_cnt not in self.pin_names.keys():
-                self.pin_names[pin_cnt] = str(pin_cnt)
-
-            pin_cnt += 1
-
-        self.re_names = dict((v,k) for k,v in self.pin_names.items())
+        self.broker_client.publish( f'{self.common_prefix}/Invertion', f'{"".join(str(list(self.invert.values())))}' )
 
         self.upd_state()
         self.send_state()
@@ -356,16 +328,18 @@ class CDiNum(CSideDev):
         state = self.hw.digital_read_all()
         self.read_time = datetime.datetime.now()
 
-        next_state = dict.fromkeys(range(1, self.ch_num), 0)
+        ret = False
+
+        next_state = dict.fromkeys(range(1, self.ch_num+1), 0)
         bit_cnt = 1
         for one_byte in state:
             for i in range(8):
                 if bit_cnt > self.ch_num: break
                 this_bit = one_byte >> i & 1
-                next_state[bit_cnt] = this_bit
+                next_state[bit_cnt] = this_bit if not self.invert[bit_cnt] else ((~this_bit) & 1)
+                ret = ret or (next_state[bit_cnt] != self.state[bit_cnt])
                 bit_cnt += 1
 
-        ret = (set(self.state) != set(next_state))
         self.state = next_state
         return ret
 

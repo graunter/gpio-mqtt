@@ -36,13 +36,13 @@ EXE_NAME="$PROJECT_NAME"
 mkdir -p $BUILD_PATH
 cp -r ../src/* $BUILD_PATH
 
-echo "Create virtual enviroment.."
+#echo "Create virtual enviroment.."
 #cd ../../
 #pyenv virtualenv 3.9.2 $BUILD_ENV_NAME
 #pyenv activate $BUILD_ENV_NAME
 #pip3 install -r requirements.txt 
 #TODO: must be transform to abs path
-pip3 install -r ../../requirements.txt 
+#pip3 install -r ../../requirements.txt 
 
 
 #compile source

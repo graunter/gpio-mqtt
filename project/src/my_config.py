@@ -190,7 +190,7 @@ class MyConfig(metaclass=MySingletone):
         return self.side_blocks
 
     def get_components(self) -> Dict[str, List[CPin]]:   
-        logging.debug('Total ' + str(len(self.pins)) + ' was passed')
+        logging.debug(f"Total {str(len(self.pins))} controller's onboard pins were passed")
         return self.pins
 
 
