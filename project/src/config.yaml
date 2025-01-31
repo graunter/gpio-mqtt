@@ -9,27 +9,46 @@ cfg:
   changes_only: True
   status_period_sec: 10
 
-# convert_tables:
-#   - &bin_filter 
-#     - name: on_value
-#       broker: 1
-#       file: 1
-#     - name: off_value
-#       broker: 0
-#       file: 0
-#     - broker: "*"
-#       file: null
-#     - broker: null
-#       file: "*"      
-#   - &bool_to_bin 
-#     - broker: "True"
-#       file: 1
-#     - broker: "False"
-#       file: 0
-#     - broker: "*"
-#       file: null
-#     - broker: null
-#       file: "*"
+true_list:
+  - 1
+  - True
+  - true
+  - On
+  - on
+  - "Set"
+  - "set"
+
+false_list:
+  - 0
+  - False
+  - false
+  - Off
+  - off
+
+convert_tables:
+  - &bin_filter 
+    - name: on_value
+      broker: 1
+      file: 1
+      inv: 0
+    - name: off_value
+      broker: 0
+      file: 0
+      inv: 1      
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"      
+  - &bool_to_bin 
+    - broker: "True"
+      file: 1
+    - broker: "False"
+      file: 0
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"
+
 
 ext_i2c:
     # Секция описывает расположение боковых модулей ввода/вывода
@@ -209,6 +228,7 @@ sysfs_pins:
   #   file_value: "/sys/class/gpio/gpio558/value"
   #   create_start_topic: True
   #   changes_only: True
+  #   convert_table: *bin_filter
 
   # - name: DI_2
   #   type: IN

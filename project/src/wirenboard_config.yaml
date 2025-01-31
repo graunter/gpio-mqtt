@@ -20,6 +20,7 @@ sysfs_pins:
     topic: "test/dev/A1_DI"
     file_value: "/sys/class/gpio/gpio231/value"
     create_start_topic: True
+    invert: False
     init:
       - file: "/sys/class/gpio/export"
         text: "231"

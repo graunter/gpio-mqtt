@@ -124,7 +124,7 @@ class MyConfig(metaclass=MySingletone):
 
                 pin_topics = item.get("topic")
                 if not pin_topics:
-                    # Instead of one general topic for control - two can be used
+                    # Instead of one general topic for control - two topic can be used
                     pin.topic_wr = item.get("topic_wr")
                     if not pin.topic_wr: pin.topic_wr = item.get("topic_cmd", "")
                     if not pin.topic_wr: logging.warning( f"The topic name for WR commands in {pin.name} is absent" )
@@ -148,12 +148,14 @@ class MyConfig(metaclass=MySingletone):
                 for InitStep in item.get("init", []):
                     OutFile = InitStep.get("file")
                     if OutFile is None:
+                        logging.warning( f"Init file name for for {pin.name} is absent - this step will be scipped" )
                         continue                    # TODO: Err msg
                     OutText = InitStep.get("text")
  
                     pin.initFs.append( InitStep_t(OutFile, OutText) )
 
                 pin.status_period_sec = item.get("status_period_sec", self.status_period_sec)
+                pin.invert = item.get("invert", False)
 
                 pin_convert_table = item.get("convert_table")
                 if pin_convert_table is not None:

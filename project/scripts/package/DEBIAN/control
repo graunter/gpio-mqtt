@@ -1,6 +1,6 @@
 
 Package: gpio-mqtt
-Version: 0.0.8
+Version: 0.0.9
 Section: embedded
 Priority: optional
 Depends: libc6 (>= 2.31)
