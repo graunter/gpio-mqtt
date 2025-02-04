@@ -1,54 +1,3 @@
-broker:
-  host: "localhost"
-  port: 1883
-  user: ""
-  password: ""
-
-cfg:
-  pull_period_ms: 100
-  changes_only: True
-  status_period_sec: 10
-
-true_list:
-  - 1
-  - True
-  - true
-  - On
-  - on
-  - "Set"
-  - "set"
-
-false_list:
-  - 0
-  - False
-  - false
-  - Off
-  - off
-
-convert_tables:
-  - &bin_filter 
-    - name: on_value
-      broker: 1
-      file: 1
-      inv: 0
-    - name: off_value
-      broker: 0
-      file: 0
-      inv: 1      
-    - broker: "*"
-      file: null
-    - broker: null
-      file: "*"      
-  - &bool_to_bin 
-    - broker: "True"
-      file: 1
-    - broker: "False"
-      file: 0
-    - broker: "*"
-      file: null
-    - broker: null
-      file: "*"
-
 
 ext_i2c:
     # Секция описывает расположение боковых модулей ввода/вывода
@@ -64,7 +13,8 @@ ext_i2c:
     # опционально.
     # если не установлено или 0 - то отправка только по изменению
 
-    reset_to_def_topic: reset_all
+    # TODO:
+    # reset_to_def_topic: reset_all
     # пример: Relative/Path/To/Set/Topic 
     # итоговое значение для записи: common_path/reset_to_def_topic
     # топик для сброса всех выходов в исходное состояние
@@ -77,6 +27,11 @@ ext_i2c:
     # не более 8 модулей DO/DI всего
     
     # поддерживаемые варианты:
+        
+    #- do#            # модуль дискретных вЫходов разрядностью "#"
+    #- di#            # модуль дискретных входов разрядностью "#"
+
+    # TODO:
     #- wbio-do-r1g-16  # Модуль релейных выходов 1А для контакторов
     #- wbio-do-r3a-8   # Модуль релейных выходов 3A
     #- wbio-do-ssr-8   # Модуль дискретных выходов типа «сухой контакт»
@@ -84,16 +39,15 @@ ext_i2c:
     #- wbio-di-hvd-8   # Модуль-детектор наличия сетевого напряжения 230 В
     #- wbio-di-dr-14   # Модуль дискретных входов типа "сухой контакт"
     #- wbio-di-dr-8    # Модуль дискретных входов типа "сухой контакт"
-    
-    #- do#            # модуль дискретных вЫходов разрядностью "#"
-    #- di#            # модуль дискретных входов разрядностью "#"
+
 
     modules:
       # отбика каждой следующей дочерней секции производится через отступы и символы "-"
 
-      - type: do8
+      - type: do8       # тип модуля для примера использования. 
+                        # ЗАМЕНИТЬ СВОИМ ЗНАЧЕНИЕМ!
 
-      - type: do12
+      - type: do12      # ЗАМЕНИТЬ СВОИМ ЗНАЧЕНИЕМ!
         # тип модуля из поддерживаемых вариантов
 
         repetition_time_sec: 300
@@ -111,7 +65,8 @@ ext_i2c:
         # опционально.
         # если не установлено - то используется порядковый номер модуля на дин рейке
 
-        start_state: "None"
+        # TODO:
+        #start_state: "None"
         # start_state: [0, 1, "LastState", "None"]
         # установить состояние модуля вывода при старте сервиса
         # 0 - сбросить все контакты
@@ -121,9 +76,9 @@ ext_i2c:
         # опционально.
         # если не установлено - то используется "None"
 
-        # TODO
-        set_topic: set
-        clr_topic: clr
+        # TODO:
+        # set_topic: set
+        # clr_topic: clr
 
         pins:
         # настройки для контактов модулей индивидуально
@@ -136,7 +91,7 @@ ext_i2c:
           # нумерация начинается с 1
 
           name: "PinOne"
-          # мнемоническое имя для управления топиком
+          # мнемоническое имя топика для управления данным контактом
           # опционально.
           # если не установлено - то используется номер контакта
           
@@ -160,41 +115,11 @@ ext_i2c:
           # "LastState" - восстановить последнее установленное значение
           # "None" - ничего не предпринимать
           # опционально.
-          # если не установлено - то используется значение из вышестоящей секции
-          # значения 0, 1, "LastState" - перезаписываЮТ соответствующие поля вышестоящей секции
-          # значение "None" - перезаписываЮТСЯ соответствующиМИ поляМИ вышестоящей секции
+          # если не установлено - то используется значение из вышестоящей секции или "None"
+          # значения перезаписываЮТ соответствующие поля вышестоящей секции
 
           invert: True
-          # Инвертировать значение при отправке на шину
+          # Инвертировать значение электрического сигнала на этом контакте
 
-      - type: di14
+      - type: di14        # ЗАМЕНИТЬ СВОИМ ЗНАЧЕНИЕМ!
       #- type: di8
-
-
-
-  # WB7
-  # - name: Mod1_K12
-  #   pull_period_ms: 100
-  #   changes_only: False
-  #   topic: "dev/extender/do12"
-  #   file_value: "/sys/class/gpio/gpio563/value"
-  #   type: OUT
-  #   create_start_topic: True
-  #   init:
-  #     - file: "/sys/class/gpio/export"
-  #       text: "563"
-  #     - file: "/sys/class/gpio/gpio563/direction"
-  #       text: "out"
-  # - name: Mod2_DI1
-  #   pull_period_ms: 100
-  #   changes_only: False
-  #   topic: "dev/extender/di1"
-  #   file_value: "/sys/class/gpio/gpio512/value"
-  #   type: IN
-  #   create_start_topic: True
-  #   init:
-  #     - file: "/sys/class/gpio/export"
-  #       text: "563"
-  #     - file: "/sys/class/gpio/gpio563/direction"
-  #       text: "in"  
-

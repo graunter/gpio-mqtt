@@ -1,0 +1,123 @@
+
+convert_tables:
+  - &bin_filter 
+    - name: on_value
+      broker: 1
+      file: 1
+    - name: off_value
+      broker: 0
+      file: 0 
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"      
+  - &bool_to_bin 
+    - broker: "True"
+      file: 1
+    - broker: "False"
+      file: 0
+    - broker: "*"
+      file: null
+    - broker: null
+      file: "*"
+
+
+sysfs_pins:
+
+  # the following data could be used for test purposes
+  # JH D1
+  - name: LedRed
+    type: OUT
+    topic: "test/dev/LedRed"
+    file_value: "/sys/class/gpio/gpio452/value"
+    create_start_topic: True
+    convert_table: *bin_filter
+    init:
+      - file: "/sys/class/gpio/export"
+        text: "452"
+      - file: "/sys/class/gpio/gpio563/direction"
+        text: "out"
+
+  - name: LedGreen
+    type: OUT
+    topic: "test/dev/LedGreen"
+    file_value: "/sys/class/gpio/gpio453/value"
+    create_start_topic: True
+
+  - name: UserBtn
+    type: IN
+    pull_period_ms: 100
+    changes_only: True
+    topic: "test/dev/UserBtn"
+    file_value: "/sys/class/gpio/gpio436/value"
+    create_start_topic: True
+    init:
+      - text: "436"
+        file: "/sys/class/gpio/export"
+      - file: "/sys/class/gpio/gpio436/direction"
+        text: "in"  
+
+#############################################################
+# Inputs
+#############################################################
+
+  - name: DI_1
+    type: IN
+    topic: "test/dev/DI_1"
+    file_value: "/sys/class/gpio/gpio472/value"
+    create_start_topic: True
+    changes_only: True
+    convert_table: *bin_filter
+
+  - name: DI_2
+    type: IN
+    topic: "test/dev/DI_2"
+    file_value: "/sys/class/gpio/gpio471/value"
+    create_start_topic: True    
+
+  - name: DI_3
+    type: IN
+    topic: "test/dev/DI_3"
+    file_value: "/sys/class/gpio/gpio470/value"
+    create_start_topic: True
+
+  - name: DI_4
+    type: IN
+    topic: "test/dev/DI_4"
+    file_value: "/sys/class/gpio/gpio469/value"
+    create_start_topic: True
+
+#############################################################
+# Outputs
+#############################################################
+
+  - name: DO_1
+    type: OUT
+    #topic_wr: "test/dev/DO_1/on"
+    topic_rd: "test/dev/DO_1"
+    topic_cmd: "test/dev/DO_1/on"
+    #topic_state: "test/dev/DO_1"
+    convert_table: *bin_filter
+    file_value: "/sys/class/gpio/gpio456/value"
+    create_start_topic: True
+    changes_only: True
+    pull_period_ms: 1000
+    status_period_sec: 600
+
+
+  - name: DO_2
+    type: OUT
+    topic_wr: "test/dev/DO_2/on"
+    topic_rd: "test/dev/DO_2"
+    file_value: "/sys/class/gpio/gpio455/value"
+    create_start_topic: True    
+    changes_only: True
+
+
+  - name: DO_3
+    type: OUT
+    topic_wr: "test/dev/DO_3/on"
+    topic_rd: "test/dev/DO_3"
+    file_value: "/sys/class/gpio/gpio454/value"
+    create_start_topic: True
+    changes_only: True
