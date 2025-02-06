@@ -27,7 +27,8 @@ fi
 OUTPUT_PATH="../../build/$ARCHITECTURE"
 echo "OUTPUT_PATH=$OUTPUT_PATH"
 mkdir -p $OUTPUT_PATH
-rm -rf $OUTPUT_PATH/{*,.*}
+#rm -rf $OUTPUT_PATH/{*,.*}
+rm -rf $OUTPUT_PATH/*
 
 
 PROJECT_NAME=$(cat package/DEBIAN/control | grep 'Package:' | awk '{print$2}')
@@ -53,7 +54,8 @@ cmd1="--add-data \"config.yaml:.\""
 cmd2="--distpath $DIST_PATH"
 cmd3="--specpath $BUILD_PATH"
 cmd4="-d all"
-cmd="pyinstaller --onefile -y -n '$EXE_NAME' $cmd1 $cmd2 $cmd3 $cmd4 --clean $BUILD_PATH/main.py" 
+cmd5="--hidden-import=_cffi_backend"
+cmd="pyinstaller --onefile -y -n '$EXE_NAME' $cmd1 $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py" 
 echo $cmd
 sshpass -p $BUILD_PLATFORM_PASS ssh $BUILD_USER@$BUILD_PLATFORM_ADDRESS -p $BUILD_PLATFORM_PORT "$cmd" 
 

@@ -17,6 +17,10 @@ echo "OUTPUT_PATH=$OUTPUT_PATH"
 mkdir -p $OUTPUT_PATH
 rm -rf $OUTPUT_PATH/*
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
 PROJECT_NAME=$(cat package/DEBIAN/control | grep 'Package:' | awk '{print$2}')
 BUILD_VERSION=$(cat package/DEBIAN/control | grep 'Version:' | awk '{print$2}')
 
@@ -50,7 +54,7 @@ cmd1="--add-data config.yaml:."
 cmd2="--distpath $DIST_PATH"
 cmd3="--specpath $BUILD_PATH"
 cmd4="--hidden-import=_cffi_backend"
-pyinstaller --onefile --clean -y -n $EXE_NAME $cmd1 $cmd2 $cmd3 $cmd4 $BUILD_PATH/main.py
+pyinstaller --onefile --clean -y -n $EXE_NAME $cmd2 $cmd3 $cmd4 $BUILD_PATH/main.py
 
 echo "coping result to local path..."
 EXE_OUTPUT_PATH="$PACKAGE_PATH/opt/$PROJECT_NAME"

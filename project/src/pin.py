@@ -48,6 +48,7 @@ class CPin:
         try:
             return_code = subprocess.run("systemctl stop wb-mqtt-gpio")
         except Exception as e:
+            #TODO: exit
             pass
 
         for one_step in self.initFs:
