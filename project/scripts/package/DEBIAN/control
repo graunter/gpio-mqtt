@@ -1,10 +1,10 @@
 
 Package: gpio-mqtt
-Version: 0.0.9
+Version: 0.1.1-rc1
 Section: embedded
 Priority: optional
 Depends: libc6 (>= 2.31)
 Maintainer: STDU Zhukov Sergey <graunter@gmail.com>
 Architecture: all
-Installed-Size: 8000
+Installed-Size: 11000
 Description: Service for controllers pins monitoring and handling

@@ -112,7 +112,7 @@ class MyConfig(metaclass=MySingletone):
 
     def extract_components(self, CfgData: list):
         
-        if CfgData and CfgData["sysfs_pins"] is not None:
+        if CfgData and CfgData.get("sysfs_pins") is not None:
             for item in CfgData.get("sysfs_pins", []):
                 pin = CPin()
                 pin.name = item.get("name", "")
@@ -172,7 +172,7 @@ class MyConfig(metaclass=MySingletone):
                 self.pins[pin.topic_wr].append(pin)
 
     def extract_i2c_mods(self, CfgData: list):
-        if CfgData and CfgData["ext_i2c"] is None:
+        if CfgData and CfgData.get("ext_i2c", None) is None:
             return
         
         item = CfgData.get("ext_i2c", [])

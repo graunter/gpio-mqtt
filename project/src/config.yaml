@@ -169,6 +169,7 @@ ext_i2c:
 
       - type: di14
       #- type: di8
+<<<<<<< HEAD
 
 
 

@@ -30,6 +30,7 @@ class CSideDev:
         self.pin_names = {}
         self.set_topics = {}
         self.clr_topics = {}
+        self.state_topic = {}
         self.re_names = {}
         self.read_time = 0
 
@@ -108,6 +109,7 @@ class CDoNum(CSideDev):
         self.set_topics = dict.fromkeys(range(1, ChNum+1), "set")
         self.clr_topics = dict.fromkeys(range(1, ChNum+1), "clr")
         self.pin_names = dict( (item, str(item)) for item in range(1, ChNum+1) ) 
+        self.state_topic = dict( (item, f'{str(item)}') for item in range(1, ChNum+1) ) 
         
         for one_pin in self.cfg.get("pins", []):
             if not (pin_num := one_pin["num"]):
@@ -129,6 +131,7 @@ class CDoNum(CSideDev):
                       
             self.set_topics[pin_num] = one_pin.get("set_path", self.set_topics[pin_num])
             self.clr_topics[pin_num] = one_pin.get("clr_path", self.clr_topics[pin_num])
+            self.state_topic[pin_num] = self.pin_names[pin_num]
 
         self.re_names = dict((v,k) for k,v in self.pin_names.items())
 
@@ -183,12 +186,12 @@ class CDoNum(CSideDev):
             pin_topic = self.pin_names[pin_idx]
 
             # TODO: all messages should be accumulated
-            set_topic = f'{self.common_prefix}/State/{pin_topic}/{self.set_topics[pin_idx]}'
+            set_topic = f'{self.common_prefix}/{self.state_topic[pin_idx]}/{self.set_topics[pin_idx]}'
             self.broker_client.message_callback_add( set_topic, self.on_set_msg)
             self.broker_client.publish( set_topic, "" )
             self.broker_client.subscribe( set_topic, 0)
 
-            clr_topic = f'{self.common_prefix}/State/{pin_topic}/{self.clr_topics[pin_idx]}'
+            clr_topic = f'{self.common_prefix}/{self.state_topic[pin_idx]}/{self.clr_topics[pin_idx]}'
             self.broker_client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
             self.broker_client.publish( f'{clr_topic}', "" )
             self.broker_client.subscribe( f'{clr_topic}', 0)
@@ -224,8 +227,7 @@ class CDoNum(CSideDev):
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
         for position, this_bit in self.state.items():
-            pin_topic = self.pin_names[position]
-            self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_bit}' )
+            self.broker_client.publish( f'{self.common_prefix}/{self.state_topic[position]}', f'{this_bit}' )
 
 
     def on_set_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
@@ -244,12 +246,12 @@ class CDoNum(CSideDev):
         this_real_bit = LOW if self.invert[pin_num] else HIGH
         self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)
 
-        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "1" )
+        client.publish( f'{self.common_prefix}/{self.state_topic[pin_num]}', "1" )
         self.state[pin_num] = 1
         self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
-        set_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.set_topics[pin_num]}'
+        set_topic = f'{self.common_prefix}/{self.state_topic[pin_num]}/{self.set_topics[pin_num]}'
         self.broker_client.publish( set_topic, None )
 
         storage = StateHolder()
@@ -272,12 +274,12 @@ class CDoNum(CSideDev):
         this_real_bit = HIGH if self.invert[pin_num] else LOW
         self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)
 
-        client.publish( f'{self.common_prefix}/State/{self.pin_names[pin_num]}', "0" )
+        client.publish( f'{self.common_prefix}/{self.state_topic[pin_num]}', "0" )
         self.state[pin_num] = 0
         self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
 
-        clr_topic = f'{self.common_prefix}/State/{self.pin_names[pin_num]}/{self.clr_topics[pin_num]}'
+        clr_topic = f'{self.common_prefix}/{self.state_topic[pin_num]}/{self.clr_topics[pin_num]}'
         self.broker_client.publish( clr_topic, None )
 
         storage = StateHolder()
@@ -294,6 +296,7 @@ class CDiNum(CSideDev):
         self.state = dict.fromkeys(range(1, ChNum+1), 0)
         self.invert = dict.fromkeys(range(1, ChNum+1), False)
         self.pin_names = dict( (item, str(item)) for item in range(1, ChNum+1) ) 
+        self.state_topic = dict( (item, f'{str(item)}') for item in range(1, ChNum+1) ) 
 
         for one_pin in self.cfg.get("pins", []):
             if not (pin_num := one_pin["num"]):
@@ -302,6 +305,8 @@ class CDiNum(CSideDev):
 
             self.invert[pin_num] = one_pin.get("invert", self.invert[pin_num])
             self.pin_names[pin_num] = one_pin.get("name", self.pin_names[pin_num])
+            self.state_topic[pin_num] = self.pin_names[pin_num]
+
 
         self.re_names = dict((v,k) for k,v in self.pin_names.items())
 
@@ -350,6 +355,5 @@ class CDiNum(CSideDev):
         self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
         
         for position, this_bit in self.state.items():
-            pin_topic = self.pin_names[position]
-            self.broker_client.publish( f'{self.common_prefix}/State/{pin_topic}', f'{this_bit}' )
+            self.broker_client.publish( f'{self.common_prefix}/{self.state_topic[position]}', f'{this_bit}' )
 

@@ -59,6 +59,7 @@ class CTopinator:
         devs_adr = wbus.scan()
         logging.info(f'Side I2C addresses were found: {list(map(hex, devs_adr))}')
 
+        block_adr_lst = []
         if devs_adr and (len(devs_adr)!= 0):
             block_adr_lst = MCP23017.get_ord_adr_list(wbus.get_current_adr_list())
         logging.info(f'Side modules ordered by address: {list(map(hex, block_adr_lst))}')
