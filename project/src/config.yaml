@@ -169,7 +169,6 @@ ext_i2c:
 
       - type: di14
       #- type: di8
-<<<<<<< HEAD
 
 
 
@@ -226,3 +225,5 @@ sysfs_pins:
         text: "228"
       - file: "/sys/class/gpio/gpio228/direction"
         text: "in"        
+=======
+>>>>>>> 382223115ab8db71c5fbc77919b5dd2231a2e392
