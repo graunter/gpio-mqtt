@@ -9,21 +9,6 @@ cfg:
   changes_only: True
   status_period_sec: 10
 
-true_list:
-  - 1
-  - True
-  - true
-  - On
-  - on
-  - "Set"
-  - "set"
-
-false_list:
-  - 0
-  - False
-  - false
-  - Off
-  - off
 
 convert_tables:
   - &bin_filter 
@@ -140,17 +125,23 @@ ext_i2c:
           # опционально.
           # если не установлено - то используется номер контакта
           
-          set_path: set
+          set_path: "set"
           # имя топика для установки значения
           # итоговое значение для записи:"common_path"/"control_path"/"name"/"set_path"
           # опционально.
           # если не установлено - то используется значение "set"         
 
-          clr_path: clr
+          clr_path: "clr"
           # имя топика для сброса значения
           # итоговое значение для записи:"common_path"/"control_path"/"name"/"clr_path"
           # опционально.
-          # если не установлено - то используется значение "clr"   
+          # если не установлено - то используется значение "clr" 
+
+          value_path: "value"
+          # имя топика для установки значения
+          # итоговое значение для записи:"common_path"/"control_path"/"name"/"value_path"
+          # опционально.
+          # если не установлено - то используется значение "value" 
 
           start_state: "None"
           # start_state: [0, 1, "LastState", "None"]

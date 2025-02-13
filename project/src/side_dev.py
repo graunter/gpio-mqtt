@@ -108,6 +108,7 @@ class CDoNum(CSideDev):
         self.start_state = dict.fromkeys(range(1, ChNum+1), CDoNum.start_state_enum.e_None)
         self.set_topics = dict.fromkeys(range(1, ChNum+1), "set")
         self.clr_topics = dict.fromkeys(range(1, ChNum+1), "clr")
+        self.val_topics = dict.fromkeys(range(1, ChNum+1), "value")
         self.pin_names = dict( (item, str(item)) for item in range(1, ChNum+1) ) 
         self.state_topic = dict( (item, f'{str(item)}') for item in range(1, ChNum+1) ) 
         
@@ -131,6 +132,7 @@ class CDoNum(CSideDev):
                       
             self.set_topics[pin_num] = one_pin.get("set_path", self.set_topics[pin_num])
             self.clr_topics[pin_num] = one_pin.get("clr_path", self.clr_topics[pin_num])
+            self.val_topics[pin_num] = one_pin.get("value_path", self.val_topics[pin_num])
             self.state_topic[pin_num] = self.pin_names[pin_num]
 
         self.re_names = dict((v,k) for k,v in self.pin_names.items())
@@ -195,6 +197,11 @@ class CDoNum(CSideDev):
             self.broker_client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
             self.broker_client.publish( f'{clr_topic}', "" )
             self.broker_client.subscribe( f'{clr_topic}', 0)
+
+            val_topic = f'{self.common_prefix}/{self.state_topic[pin_idx]}/{self.val_topics[pin_idx]}'
+            self.broker_client.message_callback_add( f'{val_topic}', self.on_val_msg)
+            self.broker_client.publish( f'{val_topic}', "" )
+            self.broker_client.subscribe( f'{val_topic}', 0)
 
         self.broker_client.publish( f'{self.common_prefix}/Invertion', f'{"".join(str(list(self.invert.values())))}' )
         self.send_state()
@@ -285,6 +292,38 @@ class CDoNum(CSideDev):
         storage = StateHolder()
         storage.save("0", f'{str(self.ord)}-{pin_num}')
 
+    def on_val_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
+
+        if not (value := msg.payload.decode("utf-8")):
+            return
+
+        in_pin_name = msg.topic.split("/")[-2]
+
+        if in_pin_name in self.re_names.keys():
+            pin_num = self.re_names[in_pin_name]
+        else:
+            logging.error(f'pin name=={in_pin_name} for value op is wrong - scipped') 
+            return
+        
+        save_val = "0"
+        if value in TRUE_LIST:
+            this_real_bit = HIGH if not self.invert[pin_num] else LOW
+            save_val = "1"
+        elif value in FALSE_LIST:
+            this_real_bit = LOW if not self.invert[pin_num] else HIGH
+        else:
+            logging.error(f'value for pin name=={in_pin_name} is wrong - scipped') 
+            return            
+
+        self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)
+
+        client.publish( f'{self.common_prefix}/{self.state_topic[pin_num]}', value )
+        self.state[pin_num] = value
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
+        self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
+
+        storage = StateHolder()
+        storage.save(save_val, f'{str(self.ord)}-{pin_num}')
 
 class CDiNum(CSideDev):
 
