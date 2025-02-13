@@ -50,7 +50,7 @@ class CSideDev:
             if not (pin_num := one_pin["num"]):
                 logging.error(f'pin configuration for {self.cfg["cfg_pos_cnt"]} is not correct - scipped') 
                 break
-            self.pin_names[pin_num] = one_pin.get("name", str(pin_num))
+            self.pin_names[pin_num] = one_pin.get("pin_name", str(pin_num))
 
         #TODO: all messages should be posted - may be group all to one packet
         #TODO: verify the response
@@ -59,6 +59,8 @@ class CSideDev:
         msg_info = client.publish( f'{self.common_prefix}/Name', str(self.name))
         msg_info = client.publish( f'{self.common_prefix}/Description', str(self.desc))
         
+        self.cfg["repetition_time_sec"] = self.cfg.get("status_period", 0)
+
         if self.cfg.get("repetition_time_sec", 0) > 0:
             self.pause_rep_fl = False
             if not self.pull_theblock_thrd:
