@@ -1,4 +1,4 @@
-/var/log/topicator/gpio-mqtt.log {
+/var/log/gpio-mqtt/gpio-mqtt.log {
     rotate 4
     missingok
     notifempty

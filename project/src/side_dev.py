@@ -38,13 +38,12 @@ class CSideDev:
     def link_to_broker(self, client: mqtt.Client):
 
         # TODO: sintax optimization required
-        if not self.glob_cfg.get("common_path"):
-            self.glob_cfg["common_path"] = DEFAULT_COMMON_PATH_TOPIC
 
         if not self.cfg.get("control_path"):
             self.cfg["control_path"] = str(self.ord)
 
         self.common_prefix = f'{self.glob_cfg["common_path"]}/{self.cfg["control_path"]}'
+        logging.info(f'Device {self.address} is waiting for messages on topic {self.common_prefix}')
 
         for one_pin in self.cfg.get("pins", []):
             if not (pin_num := one_pin["num"]):
@@ -194,16 +193,19 @@ class CDoNum(CSideDev):
             self.broker_client.message_callback_add( set_topic, self.on_set_msg)
             self.broker_client.publish( set_topic, "" )
             self.broker_client.subscribe( set_topic, 0)
+            logging.info(f'{self.name}, pin {pin_topic}: waiting for set message from rage ({str(TRUE_LIST)}) on topic {set_topic}') 
 
             clr_topic = f'{self.common_prefix}/{self.state_topic[pin_idx]}/{self.clr_topics[pin_idx]}'
             self.broker_client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
             self.broker_client.publish( f'{clr_topic}', "" )
             self.broker_client.subscribe( f'{clr_topic}', 0)
+            logging.info(f'{self.name}, pin {pin_topic}: waiting for clear message from rage ({str(TRUE_LIST)}) on topic {clr_topic}') 
 
             val_topic = f'{self.common_prefix}/{self.state_topic[pin_idx]}/{self.val_topics[pin_idx]}'
             self.broker_client.message_callback_add( f'{val_topic}', self.on_val_msg)
             self.broker_client.publish( f'{val_topic}', "" )
             self.broker_client.subscribe( f'{val_topic}', 0)
+            logging.info(f'{self.name}, pin {pin_topic}: waiting for value message from rage ({str(TRUE_LIST)}) or ({str(FALSE_LIST)}) on topic {clr_topic}')             
 
         self.broker_client.publish( f'{self.common_prefix}/Invertion', f'{"".join(str(list(self.invert.values())))}' )
         self.send_state()
@@ -248,6 +250,7 @@ class CDoNum(CSideDev):
 
         if in_pin_name in self.re_names.keys():
             pin_num = self.re_names[in_pin_name]
+            logging.debug(f'pin name=={in_pin_name} will set') 
         else:
             logging.error(f'pin name=={in_pin_name} for set op is wrong - scipped') 
             return
@@ -276,6 +279,7 @@ class CDoNum(CSideDev):
 
         if in_pin_name in self.re_names.keys():
             pin_num = self.re_names[in_pin_name]
+            logging.debug(f'pin name=={in_pin_name} will clear') 
         else:
             logging.error(f'pin name=={in_pin_name} for clear op is wrong - scipped') 
             return
@@ -311,8 +315,10 @@ class CDoNum(CSideDev):
         if value in TRUE_LIST:
             this_real_bit = HIGH if not self.invert[pin_num] else LOW
             save_val = "1"
+            logging.debug(f'pin name=={in_pin_name} will set') 
         elif value in FALSE_LIST:
             this_real_bit = LOW if not self.invert[pin_num] else HIGH
+            logging.debug(f'pin name=={in_pin_name} will clear') 
         else:
             logging.error(f'value for pin name=={in_pin_name} is wrong - scipped') 
             return            
@@ -386,6 +392,7 @@ class CDiNum(CSideDev):
                 ret = ret or (next_state[bit_cnt] != self.state[bit_cnt])
                 bit_cnt += 1
 
+        if ret: logging.debug(f'state for {self.address} was chaged to: {next_state}')
         self.state = next_state
         return ret
 

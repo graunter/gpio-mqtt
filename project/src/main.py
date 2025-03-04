@@ -64,14 +64,17 @@ class CTopinator:
             block_adr_lst = MCP23017.get_ord_adr_list(wbus.get_current_adr_list())
         logging.info(f'Side modules ordered by address: {list(map(hex, block_adr_lst))}')
         
-        ext_lst = Cfg.get_side_ext_blocks()
+        ext_lst_from_cfg = Cfg.get_side_ext_blocks()
 
-        if len(ext_lst) != len(block_adr_lst):
-            logging.error(f'Config file doesn`t match to bus scan!')
-            return
+        if len(ext_lst_from_cfg) != len(block_adr_lst):
+            if not ext_lst_from_cfg:
+                logging.warning(f'There is side devises but config is empty - go to default configuration')
+            else:
+                logging.error(f'Config file doesn`t match to bus scan!')
+                return
 
         block_cnt = 0
-        for one_block in ext_lst:
+        for one_block in ext_lst_from_cfg:
             one_block.set_location( wbus, block_adr_lst[block_cnt].item(), block_cnt+1 )
             one_block.hw_init()
             self.block_lst.append(one_block)
