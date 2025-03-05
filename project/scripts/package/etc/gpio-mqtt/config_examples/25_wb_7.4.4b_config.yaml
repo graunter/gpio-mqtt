@@ -51,4 +51,17 @@ sysfs_pins:
       - file: "/sys/class/gpio/export"
         text: "228"
       - file: "/sys/class/gpio/gpio228/direction"
-        text: "in"        
+        text: "in"
+
+  - name: MODBUS_PWR
+    type: out
+    pull_period_ms: 100
+    changes_only: True
+    topic: "test/dev/MODBUS_PWR"
+    file_value: "/sys/class/gpio/gpio415/value"
+    create_start_topic: True
+    init:
+      - file: "/sys/class/gpio/export"
+        text: "415"
+      - file: "/sys/class/gpio/gpio227/direction"
+        text: "out"

@@ -177,8 +177,10 @@ class MyConfig(metaclass=MySingletone):
         
         item = CfgData.get("ext_i2c", [])
 
+
         self.blocks_cfg["common_path"] = item.get("common_path", self.blocks_cfg["common_path"])
         self.blocks_cfg["repetition_time_sec"] = item.get("repetition_time_sec", self.blocks_cfg["repetition_time_sec"])
+        self.blocks_cfg["repetition_time_sec"] = item.get("status_period", self.blocks_cfg["repetition_time_sec"])
         self.blocks_cfg["reset_to_def_topic"] = item.get("reset_to_def_topic", self.blocks_cfg["reset_to_def_topic"])
 
         cfg_pos_cnt = 0

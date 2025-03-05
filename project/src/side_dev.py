@@ -38,19 +38,18 @@ class CSideDev:
     def link_to_broker(self, client: mqtt.Client):
 
         # TODO: sintax optimization required
-        if not self.glob_cfg.get("common_path"):
-            self.glob_cfg["common_path"] = DEFAULT_COMMON_PATH_TOPIC
 
         if not self.cfg.get("control_path"):
             self.cfg["control_path"] = str(self.ord)
 
         self.common_prefix = f'{self.glob_cfg["common_path"]}/{self.cfg["control_path"]}'
+        logging.info(f'Device {self.address} is waiting for messages on topic {self.common_prefix}')
 
         for one_pin in self.cfg.get("pins", []):
             if not (pin_num := one_pin["num"]):
                 logging.error(f'pin configuration for {self.cfg["cfg_pos_cnt"]} is not correct - scipped') 
                 break
-            self.pin_names[pin_num] = one_pin.get("name", str(pin_num))
+            self.pin_names[pin_num] = one_pin.get("pin_name", str(pin_num))
 
         #TODO: all messages should be posted - may be group all to one packet
         #TODO: verify the response
@@ -59,6 +58,8 @@ class CSideDev:
         msg_info = client.publish( f'{self.common_prefix}/Name', str(self.name))
         msg_info = client.publish( f'{self.common_prefix}/Description', str(self.desc))
         
+        self.cfg["repetition_time_sec"] = self.cfg.get("status_period", 0)
+
         if self.cfg.get("repetition_time_sec", 0) > 0:
             self.pause_rep_fl = False
             if not self.pull_theblock_thrd:
@@ -108,6 +109,7 @@ class CDoNum(CSideDev):
         self.start_state = dict.fromkeys(range(1, ChNum+1), CDoNum.start_state_enum.e_None)
         self.set_topics = dict.fromkeys(range(1, ChNum+1), "set")
         self.clr_topics = dict.fromkeys(range(1, ChNum+1), "clr")
+        self.val_topics = dict.fromkeys(range(1, ChNum+1), "value")
         self.pin_names = dict( (item, str(item)) for item in range(1, ChNum+1) ) 
         self.state_topic = dict( (item, f'{str(item)}') for item in range(1, ChNum+1) ) 
         
@@ -131,6 +133,7 @@ class CDoNum(CSideDev):
                       
             self.set_topics[pin_num] = one_pin.get("set_path", self.set_topics[pin_num])
             self.clr_topics[pin_num] = one_pin.get("clr_path", self.clr_topics[pin_num])
+            self.val_topics[pin_num] = one_pin.get("value_path", self.val_topics[pin_num])
             self.state_topic[pin_num] = self.pin_names[pin_num]
 
         self.re_names = dict((v,k) for k,v in self.pin_names.items())
@@ -190,11 +193,19 @@ class CDoNum(CSideDev):
             self.broker_client.message_callback_add( set_topic, self.on_set_msg)
             self.broker_client.publish( set_topic, "" )
             self.broker_client.subscribe( set_topic, 0)
+            logging.info(f'{self.name}, pin {pin_topic}: waiting for set message from rage ({str(TRUE_LIST)}) on topic {set_topic}') 
 
             clr_topic = f'{self.common_prefix}/{self.state_topic[pin_idx]}/{self.clr_topics[pin_idx]}'
             self.broker_client.message_callback_add( f'{clr_topic}', self.on_clr_msg)
             self.broker_client.publish( f'{clr_topic}', "" )
             self.broker_client.subscribe( f'{clr_topic}', 0)
+            logging.info(f'{self.name}, pin {pin_topic}: waiting for clear message from rage ({str(TRUE_LIST)}) on topic {clr_topic}') 
+
+            val_topic = f'{self.common_prefix}/{self.state_topic[pin_idx]}/{self.val_topics[pin_idx]}'
+            self.broker_client.message_callback_add( f'{val_topic}', self.on_val_msg)
+            self.broker_client.publish( f'{val_topic}', "" )
+            self.broker_client.subscribe( f'{val_topic}', 0)
+            logging.info(f'{self.name}, pin {pin_topic}: waiting for value message from rage ({str(TRUE_LIST)}) or ({str(FALSE_LIST)}) on topic {clr_topic}')             
 
         self.broker_client.publish( f'{self.common_prefix}/Invertion', f'{"".join(str(list(self.invert.values())))}' )
         self.send_state()
@@ -239,6 +250,7 @@ class CDoNum(CSideDev):
 
         if in_pin_name in self.re_names.keys():
             pin_num = self.re_names[in_pin_name]
+            logging.debug(f'pin name=={in_pin_name} will set') 
         else:
             logging.error(f'pin name=={in_pin_name} for set op is wrong - scipped') 
             return
@@ -267,6 +279,7 @@ class CDoNum(CSideDev):
 
         if in_pin_name in self.re_names.keys():
             pin_num = self.re_names[in_pin_name]
+            logging.debug(f'pin name=={in_pin_name} will clear') 
         else:
             logging.error(f'pin name=={in_pin_name} for clear op is wrong - scipped') 
             return
@@ -285,6 +298,40 @@ class CDoNum(CSideDev):
         storage = StateHolder()
         storage.save("0", f'{str(self.ord)}-{pin_num}')
 
+    def on_val_msg(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
+
+        if not (value := msg.payload.decode("utf-8")):
+            return
+
+        in_pin_name = msg.topic.split("/")[-2]
+
+        if in_pin_name in self.re_names.keys():
+            pin_num = self.re_names[in_pin_name]
+        else:
+            logging.error(f'pin name=={in_pin_name} for value op is wrong - scipped') 
+            return
+        
+        save_val = "0"
+        if value in TRUE_LIST:
+            this_real_bit = HIGH if not self.invert[pin_num] else LOW
+            save_val = "1"
+            logging.debug(f'pin name=={in_pin_name} will set') 
+        elif value in FALSE_LIST:
+            this_real_bit = LOW if not self.invert[pin_num] else HIGH
+            logging.debug(f'pin name=={in_pin_name} will clear') 
+        else:
+            logging.error(f'value for pin name=={in_pin_name} is wrong - scipped') 
+            return            
+
+        self.hw.digital_write(ALL_GPIO[pin_num-1], this_real_bit)
+
+        client.publish( f'{self.common_prefix}/{self.state_topic[pin_num]}', value )
+        self.state[pin_num] = value
+        self.broker_client.publish( f'{self.common_prefix}/State', f'{"".join(str(list(self.state.values())))}' )
+        self.broker_client.publish( f'{self.common_prefix}/Time', f'{self.read_time}' )
+
+        storage = StateHolder()
+        storage.save(save_val, f'{str(self.ord)}-{pin_num}')
 
 class CDiNum(CSideDev):
 
@@ -345,6 +392,7 @@ class CDiNum(CSideDev):
                 ret = ret or (next_state[bit_cnt] != self.state[bit_cnt])
                 bit_cnt += 1
 
+        if ret: logging.debug(f'state for {self.address} was chaged to: {next_state}')
         self.state = next_state
         return ret
 
